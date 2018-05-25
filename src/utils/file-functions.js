@@ -1,0 +1,23 @@
+export const isWin = window.isWin();
+export const unixPathSep = "/";
+
+export const outputJsonAsync = (fname, obj) => window.outputJsonAsync(fname, obj)
+export const outputJsVarAsync = (fname, varName, obj) => window.outputJsVarAsync(fname, varName, obj)
+export const outputFileAsync = (fname, data) => window.outputFileAsync(fname, data)
+export const readFileAsync = (fname, encoding) => window.readFileAsync(fname, encoding)
+export const readJsonAsync = fname => window.readJsonAsync()
+export const readdirAsync = dirname => window.readdirAsync()
+export const statAsync = path => window.statAsync()
+export const readJson = fname => window.readJson()
+export const pathExistsAsync = fname => window.pathExistsAsync()
+export const getAllFiles = (dir) => window.getAllFiles(dir)
+export const ajaxGetMAPAsync = (pageName,guidStr,paramStr) => window.ajaxGetMAPAsync(pageName,guidStr,paramStr)
+export const ajaxGetFileAsync = (url) => window.ajaxGetFileAsync(url)
+export const getNormalizedPath = (curPath) => window.getNormalizedPath(curPath)
+export const getHostPathSep = () => window.getHostPathSep()
+export const getRelPath = (orgPath,curPath) => window.getRelPath(orgPath,curPath)
+export const getDirName = (curPath) => window.getDirName(curPath)
+export const getDirNameSlash = (curPath) => window.getDirNameSlash(curPath)
+export const getFileName = (curPath) => window.getFileName(curPath)
+export const getFileNameSlash = (curPath) => window.getFileNameSlash(curPath)
+export const downloadFiles = (filelist,listProgress,donwloadProgress) => window.downloadFiles(filelist,listProgress,donwloadProgress) 

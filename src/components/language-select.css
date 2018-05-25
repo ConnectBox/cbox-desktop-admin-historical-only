@@ -1,0 +1,8 @@
+.Select-multi-value-wrapper > div.Select-input > input {
+  padding-top: 0px;
+  height:  34px;
+  font-size: 12px;
+}
+.Select-multi-value-wrapper > div.Select-value {
+  font-size: 1.2em;
+}
