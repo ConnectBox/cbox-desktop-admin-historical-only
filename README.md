@@ -1,4 +1,4 @@
-# cbox-admin
+# cbox-desktop-admin
 ConnectBox desktop admin tool -> Electron executable for Windows, Mac and Linux
 
 Already compiled installer for Windows is available here:
