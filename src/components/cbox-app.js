@@ -116,6 +116,10 @@ const styles = theme => ({
   downloadButton: {
     marginLeft: 40,
     marginTop: 10,
+    backgroundColor: '#b1e0c9',
+    '&:hover': {
+        backgroundColor: '#0bde77',
+    },
   },
   updateButton: {
     width: 70,

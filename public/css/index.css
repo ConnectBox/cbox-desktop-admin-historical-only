@@ -271,7 +271,7 @@ html:not(.lte8) #footer #pause {
   top: 0px;
   height: 64px;
   width: 0px;
-  background: #a0efc8;
+  background: #b1e0c9;
   z-index: 1;
   border-right: 1px solid #efb;
 }
@@ -514,7 +514,7 @@ div.tooltip-message.tooltip-message-bottom > span {
   }
   #page_container[data-playing=true] #home-div > .serie-div:last-child,
   #page_container[data-playing=true] #home-div[data-active=true] > div[data-active=true] {
-    padding-bottom: 80px;
+    margin-bottom: 80px;
   }
   #home-div > .serie-div > .item-div > .Title > .Description {
     padding-top: 2px;
