@@ -1,0 +1,11 @@
+{
+  "dest": "release-builds/",
+  "icon": "icons/linux/CBox.png",
+  "name": "cbox-desktop-admin-app",
+  "categories": [
+    "Utility"
+  ],
+  "lintianOverrides": [
+    "changelog-file-missing-in-native-package"
+  ]
+}

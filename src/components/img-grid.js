@@ -125,8 +125,9 @@ console.log(page);
       const checkStr = resObj[0];
       const relCheckStr = getRelPath(this.props.usbPath,checkStr);
       if (!isPathInsideUsb(checkStr,this.props.usbPath)) {
+        const errMsgStr = "Images from directories outside the selected drive (" + this.props.usbPath + ") are not allowed, please select an image from a child directory!";
         this.setState({
-          snackbarMessage: "Images from parent directories are not allowed, please select an image from a child directory!",
+          snackbarMessage: errMsgStr,
           openSnackbar: true,
         })
       } else {

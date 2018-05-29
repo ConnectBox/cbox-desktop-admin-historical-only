@@ -232,9 +232,9 @@ console.log(unique(curPath))
       const checkStr = resObj[0];
       const relCheckStr = getRelPath(this.props.usbPath,checkStr);
       if (!isPathInsideUsb(checkStr,this.props.usbPath)) {
-
+        const errMsgStr = "Directories outside the selected drive (" + this.props.usbPath + ") are not allowed, please select a child directory!";
         this.setState({
-          snackbarMessage: "Parent directories not allowed, please select a child directory!",
+          snackbarMessage: errMsgStr,
           openSnackbar: true,
         })
       } else {
@@ -310,7 +310,7 @@ console.log(unique(curPath))
           open={openSnackbar}
           onClose={this.handleClose}
           autoHideDuration={6000}
-          SnackbarContentProps={{
+          ContentProps={{
             'aria-describedby': 'message-id',
           }}
           message={<span id="message-id">{snackbarMessage}</span>}

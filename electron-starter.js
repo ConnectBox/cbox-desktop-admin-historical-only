@@ -11,6 +11,7 @@ const {app, ipcMain, BrowserWindow, dialog} = require('electron')
 const path = require('path');
 const url = require('url');
 const unzipper = require('unzipper');
+const lodash = require('lodash');
 const request = require('request');
 const protocols = require('./electron-protocols');
 const fse = require('fs-extra'); // "promisified" fs function calls

@@ -31,6 +31,8 @@ const defaultBackgroundStyle = {
   background: 'black'
 };
 
+const versionStr = 'Version 2.03';
+
 const styles = theme => ({
   menuTitle: {
     margin: '15px 0px 4px 20px',
@@ -450,7 +452,7 @@ class CboxApp extends React.Component {
       <Typography
         type="title"
         className={this.props.classes.aboutTitle}
-      >Version 2.02</Typography>
+      >{versionStr}</Typography>
     </div>
   )
 

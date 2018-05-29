@@ -1,7 +1,5 @@
 import url from 'url';
-import isPathInside from 'path-is-inside';
-
-export const isWin = window.isWin();
+import {isWin,getHostPathSep} from './file-functions';
 
 export const isEmpty = obj => ((obj==null) || (Object.getOwnPropertyNames(obj).length === 0))
 
@@ -21,9 +19,28 @@ const getOrgPathPrefix = (orgPath) => {
   return retPath;
 }
 
-export const isPathInsideUsb = (curPath,orgPath) => {
-  return isPathInside(curPath,orgPath)
+const stripTrailingSep = (thePath) => {
+  if (thePath[thePath.length - 1] === getHostPathSep()) {
+    return thePath.slice(0, -1);
+  }
+  return thePath;
 }
+
+export const isPathInsideUsb = (thePath, potentialParent) => {
+  // This code is copied from https://github.com/domenic/path-is-inside
+  thePath = stripTrailingSep(thePath);
+  potentialParent = stripTrailingSep(potentialParent);
+  // Node treats only Windows as case-insensitive in its path module; we follow those conventions.
+  if (isWin) {
+    thePath = thePath.toLowerCase();
+    potentialParent = potentialParent.toLowerCase();
+  }
+  return thePath.lastIndexOf(potentialParent, 0) === 0 &&
+	(
+		thePath[potentialParent.length] === getHostPathSep() ||
+		thePath[potentialParent.length] === undefined
+	);
+};
 
 export const getLocalImgFName = (orgPath,remoteUrl, key) => {
   const tmpPath = getOrgPathPrefix(orgPath);

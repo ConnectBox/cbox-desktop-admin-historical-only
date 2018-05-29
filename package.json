@@ -1,8 +1,8 @@
 {
-  "name": "cbox-admin",
+  "name": "cbox-desktop-admin-app",
   "productName": "ConnectBox Desktop Admin",
   "description": "Admin Application for configuring a ConnectBox",
-  "version": "0.2.02",
+  "version": "0.2.03",
   "private": true,
   "dependencies": {
     "@material-ui/core": "^1.0.0",
@@ -17,7 +17,7 @@
     "fs-extra": "^4.0.2",
     "immutability-helper": "^2.6.0",
     "localforage": "^1.6.0",
-    "path-is-inside": "^1.0.2",
+    "lodash": "^4.17.10",
     "prop-types": "^15.6.0",
     "react": "^16.0.0",
     "react-data-grid": "^3.0.11",
@@ -55,8 +55,10 @@
     "package-mac": "electron-packager . --overwrite --platform=darwin --ignore=cred.js --arch=x64 --icon=./icons/mac/CBox.ico --prune=true --out=release-builds",
     "package-win32": "electron-packager . cbox-desktop-admin-app --overwrite --platform=win32 --ignore=cred.js --arch=ia32 --prune=true --out=release-builds --version-string.CompanyName=Qombi --version-string.FileDescription=V2.02 --version-string.ProductName=\"CBox Desktop Admin App\"",
     "package-win": "electron-packager . cbox-desktop-admin-app --overwrite --platform=win32 --ignore=cred.js --arch=x64 --icon=./icons/win/CBox.ico --prune=true --out=release-builds --version-string.CompanyName=Qombi --version-string.FileDescription=V2.02 --version-string.ProductName=\"CBox Desktop Admin App\"",
-    "package-linux": "electron-packager . cbox-desktop-admin-app --overwrite --asar --platform=linux --ignore=cred.js --arch=x64 --icon=assets/icons/png/1024x1024.png --prune=true --out=release-builds",
-    "package-linux-test": "electron-packager . cbox-desktop-admin-app --overwrite --platform=linux --ignore=cred.js --arch=x64 --icon=assets/icons/png/1024x1024.png --prune=true --out=release-builds",
-    "create-installer-win": "node installers/windows/createinstaller.js"
+    "package-linux": "electron-packager . cbox-desktop-admin-app --overwrite --asar --platform=linux --ignore=cred.js --arch=x64 --icon=icons/linux/CBox.png --prune=true --out=release-builds",
+    "package-linux-test": "electron-packager . cbox-desktop-admin-app --overwrite --platform=linux --ignore=cred.js --arch=x64 --icon=icons/linux/CBox.png --prune=true --out=release-builds",
+    "create-installer-win": "node installers/windows/createinstaller.js",
+    "create-debian-installer": "electron-installer-debian --src release-builds/cbox-desktop-admin-app-linux-x64/ --arch amd64 --config debian.json",
+    "create-debian-installer-x64": "electron-installer-debian --src release-builds/cbox-desktop-admin-app-linux-x64/ --arch x64 --config debian.json"
   }
 }
