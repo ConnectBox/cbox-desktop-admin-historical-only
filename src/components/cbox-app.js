@@ -31,7 +31,7 @@ const defaultBackgroundStyle = {
   background: 'black'
 };
 
-const versionStr = 'Version 2.03';
+const versionStr = 'Version 2.05';
 
 const styles = theme => ({
   menuTitle: {
@@ -412,6 +412,7 @@ class CboxApp extends React.Component {
 
   handleCBoxDownload = () => {
     const {usbPath} = this.props;
+//To Do: Get this right and also allow the parent paths up until the USB root level
     window.ipcRendererSend('download-to-usb',usbPath);
   }
 

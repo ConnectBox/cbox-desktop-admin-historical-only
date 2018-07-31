@@ -39,18 +39,15 @@ const styles = {
 }
 
 class ImgGrid extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      openSnackbar: false,
-      snackbarMessage: "",
-      imgs: [],
-      curQueryStr: "",
-      curPage: 1,
-      imgSrcStr: undefined,
-			loadingState: true,
-      hasMoreItems: true,
-    };
+  state = {
+    openSnackbar: false,
+    snackbarMessage: "",
+    imgs: [],
+    curQueryStr: "",
+    curPage: 1,
+    imgSrcStr: undefined,
+		loadingState: true,
+    hasMoreItems: true,
   }
 
   performSearch = (query,page = 1) => {
@@ -88,7 +85,6 @@ console.log(page);
       this.props.onSave(retObj)
     }
   }
-
 
   handleSave = () => {
     if (this.props.onSave!=null){

@@ -2,12 +2,13 @@ import React from 'react';
 import { isEmptyObj, isEmpty } from '../utils/obj-functions';
 import { getHostPathSep, getNormalizedPath,
           pathExistsAsync, readFileAsync,
-          outputJsVarAsync } from '../utils/file-functions';
+            outputJsVarAsync } from '../utils/file-functions';
 import { getIdFromItem,
           apiObjGetStorage, apiObjSetStorage } from "../utils/api";
 import { loadingStateValue } from "../utils/config-data";
 import CboxApp from '../components/cbox-app';
 import CboxDesktopAdminApp from '../components/cbox-desktop-admin-app';
+import CboxLocationDialog from '../components/cbox-location-dialog';
 import { iso639_3b2 } from '../iso639-3b2';
 import { unique } from 'shorthash';
 //import localforage from 'localforage';
@@ -52,6 +53,7 @@ export default class CboxAppContainer extends React.Component {
     downloadReady: false,
     usbList: [],
     usbPath: undefined,
+    usbAltPath: undefined,
     usbHash: undefined,
     missingList: [],
     resetDownloadList: [],
@@ -71,7 +73,10 @@ export default class CboxAppContainer extends React.Component {
           // remove initial "js export variable declaration" -> "export var xxx = "
           readObj = JSON.parse(tmpText.match(/[\S\s]*?(["{[][\S\s]*)/)[1])
         }
+console.log(readFName)
       }
+console.log(checkKey)
+console.log(readObj)
       return {configKey: checkKey, val: readObj}
     });
     return Promise.all(checkConfigPromises);
@@ -136,6 +141,20 @@ console.log(updateLang)
     this.updateLangConfig(allConfigObj,this.state.defaultLang,false);
   }
 
+  handleCheckAltPath = async () => {
+    const libraryBoxPath = getHostPathSep() + "LibraryBox" + getHostPathSep()
+                            + "Content" + getHostPathSep();
+    const checkFName = getNormalizedPath(this.state.usbPath + libraryBoxPath);
+    const isFound = await pathExistsAsync(checkFName)
+    if (isFound){
+console.log(libraryBoxPath)
+console.log(checkFName)
+      this.setState({usbAltPath: libraryBoxPath})
+    } else {
+      setTimeout(() => {this.handleConfig()}, 0);
+    }
+  }
+
   subscribeToIpc = (onDetect) => {
     window.ipcRendererOnLocale((event, value) => {
       let lang = "eng"; // Default
@@ -164,9 +183,22 @@ console.log(updateLang)
     this.subscribeToIpc((retVal) => console.log(retVal))
   }
 
+  handleSelectLocation = (selectionStr) => {
+console.log(selectionStr)
+    let usbPath = this.state.usbPath;
+    if (selectionStr.length>1){ // This is the LibraryBox location
+      usbPath = getNormalizedPath(this.state.usbPath + this.state.usbAltPath);
+    }
+    this.setState({
+      usbAltPath: undefined,
+      usbPath,
+      usbHash: usbPath,
+    })
+    window.setOrgPath(usbPath)
+    setTimeout(() => {this.handleConfig()}, 0);
+  }
+
   handleSelectPath = (usbPath) => {
-console.log(this.state.usbList)
-console.log(unique(JSON.stringify(this.state.usbList)))
 console.log(usbPath)
     this.setState({
       usbPath,
@@ -174,7 +206,7 @@ console.log(usbPath)
     })
     window.setOrgPath(usbPath)
     window.ipcRendererSend('stop-scan',{});
-    setTimeout(() => {this.handleConfig()}, 0);
+    setTimeout(() => {this.handleCheckAltPath()}, 0);
   }
 
   handleUpdateGUID = (guidStr) => {
@@ -332,6 +364,7 @@ console.log("playNext")
             if (curSerie.fileList[value]!=null){
               newPlayObj.curEp=curSerie.fileList[value];
             }
+console.log(newPlayObj)
             this.setState({curPlay: newPlayObj})
           }).catch((err) => {
             console.error(err);
@@ -349,7 +382,26 @@ console.log("playNext")
     const {usbPath, usbHash, usbList, loadingState,
             myTitles, myLang, curView, curPlay, cur,
             defaultLang, titleList, langList, channel, settings} = this.state;
-    if (this.state.usbPath==null){
+    if (this.state.usbAltPath!=null){
+      const locList = [
+        {
+          name: "Root",
+          path: "/",
+        },
+        {
+          name: "LibraryBox",
+          path: "/LibraryBox/Content/",
+        }
+      ];
+      return (
+        <CboxLocationDialog
+          loadingState={loadingState}
+          locationList={locList}
+          settings={settings}
+          usbPath={usbPath}
+          onSelectPath={this.handleSelectLocation}
+        />)
+    } else if (this.state.usbPath==null){
       return (
         <CboxDesktopAdminApp
           loadingState={loadingState}

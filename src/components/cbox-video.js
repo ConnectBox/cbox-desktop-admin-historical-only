@@ -1,5 +1,19 @@
 import React from 'react';
 import ReactPlayer from 'react-player'
+/*
+import {RdxVideo, Overlay, Controls} from 'react-html5-video-editor'
+import { createStore } from 'redux';
+
+const initialState = {
+  todos: []
+}
+
+function todoApp(state = initialState, action) {
+  return state
+}
+
+const store = createStore(todoApp);
+*/
 
 class CboxVideoPlayer extends React.Component {
   constructor(props) {
@@ -77,6 +91,14 @@ class CboxVideoPlayer extends React.Component {
       />
     )
   }
+/*
+<RdxVideo autoPlay loop muted store={store}>
+  <Overlay />
+  <Controls />
+  <source src={this.props.url} type="video/mp4" />
+</RdxVideo>
+
+*/
 };
 
 export default CboxVideoPlayer;

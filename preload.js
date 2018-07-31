@@ -33,7 +33,14 @@ readJsonAsync = fname => fse.readJSON(getAbsPath(fname))
 readdirAsync = dirname => fse.readdir(getAbsPath(dirname))
 statAsync = path => fse.stat(getAbsPath(path))
 readJson = fname => fse.readJSON(getAbsPath(fname))
-pathExistsAsync = fname => fse.pathExists(getAbsPath(fname))
+//pathExistsAsync = fname => fse.pathExists(getAbsPath(fname))
+pathExistsAsync = async fname => {
+  const useDir = getAbsPath(fname);
+console.log(useDir)
+  const checkVal = await fse.pathExists(useDir);
+console.log(checkVal)
+  return checkVal
+}
 
 getAllFiles = async (dir) => {
   const useDir = getAbsPath(dir);

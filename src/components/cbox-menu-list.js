@@ -15,7 +15,6 @@ import SocialSchool from '@material-ui/icons/School';
 import InfoIcon from '@material-ui/icons/Info';
 import ImageMusicNote from '@material-ui/icons/MusicNote';
 
-
 export const menuList = [
   {
     title: "My Channel",

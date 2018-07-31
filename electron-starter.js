@@ -36,6 +36,21 @@ function downloadFile(url, target, fileName, cb) { // Downloads
         });
     });
 }
+function moveLBoxSharedDir(srcpath, cb) {
+console.log(srcpath)
+  fse.move(srcpath +"/LibraryBox/Shared",
+            srcpath +"/LibraryBox/Content/Shared",
+            { overwrite: true })
+  .then(() => {
+    if (cb) {
+      cb();
+    }
+  })
+  .catch(err => {
+    console.error(err)
+  })
+}
+
 function unzip(file, target, cb) { // Unzips
 
     var out = fse.createReadStream(file);
@@ -84,7 +99,14 @@ function createWindow() {
   });
   ipcMain.on('download-to-usb', (event, data) => {
     downloadFile('http://www.qombibox.net/cbox-static-latest.zip', data, 'cbox-static-latest.zip', () => {
+// send confirmation - CircularProgress
 console.log("downloaded cbox-static-latest.zip")
+    });
+  });
+  ipcMain.on('move-from-librarybox', (event, data) => {
+    moveLBoxSharedDir(data, () => {
+// send confirmation - CircularProgress
+console.log("moved Shared folder and tree")
     });
   });
   ipcMain.on('start-scan', () => {
