@@ -1,13 +1,16 @@
-const {app,process,dialog} = require('electron').remote;
+const {app,process,dialog,BrowserWindow} = require('electron').remote;
+
 const electron = require('electron');
 const {ipcRenderer} = require('electron');
 const fse = electron.remote.require('fs-extra'); // "promisified" fs function calls
-const edm = electron.remote.require('electron-download-manager');
+const edl = electron.remote.require('electron-dl');
 const path = electron.remote.require('path');
 
 isWin = () => (process.platform === "win32")
 
-isDevelopment = () => ((process.env.NODE_ENV || 'development')==='development')
+isDevelopment = () => (process.env.ELECTRON_START_URL!=null)
+
+const htmlDecode = textStr => Object.assign(document.createElement('textarea'), {innerHTML: textStr}).value;
 
 if (!isDevelopment()){
 console.log(app.getAppPath())
@@ -17,12 +20,17 @@ console.log(path.resolve('..'))
   appRootPath = "../all-media"
 }
 console.log(appRootPath)
-
+getAppPath = () => app.getAppPath()
 getAbsPath = (curPath) => (curPath==null)? appRootPath : path.resolve(appRootPath,curPath)
 showOpenDialog = (options) => dialog.showOpenDialog(options)
 ipcRendererSend = (message,data) => ipcRenderer.send(message,data)
 ipcRendererOnLocale = (listener) => ipcRenderer.on('locale', listener)
+ipcRendererOnSecondWindowClosed = (listener) => ipcRenderer.on('second-window-closed', listener)
 ipcRendererOnDriveChange = (listener) => ipcRenderer.on('drive-change', listener)
+ipcRendererOnUnzipError = (listener) => ipcRenderer.on('unzip-error', listener)
+ipcRendererOnUnzipEnd = (listener) => ipcRenderer.on('unzip-end', listener)
+ipcRendererOnUnzipProgress = (listener) => ipcRenderer.on('unzip-progress', listener)
+ipcRendererOnDownloadProgress = (listener) => ipcRenderer.on('download-progress', listener)
 setOrgPath = (orgPath) => appRootPath = orgPath
 outputJsonAsync = (fname, obj) => fse.outputFile(getAbsPath(fname),JSON.stringify(obj))
 outputJsVarAsync = (fname, varName, obj) =>
@@ -33,21 +41,16 @@ readJsonAsync = fname => fse.readJSON(getAbsPath(fname))
 readdirAsync = dirname => fse.readdir(getAbsPath(dirname))
 statAsync = path => fse.stat(getAbsPath(path))
 readJson = fname => fse.readJSON(getAbsPath(fname))
-//pathExistsAsync = fname => fse.pathExists(getAbsPath(fname))
-pathExistsAsync = async fname => {
-  const useDir = getAbsPath(fname);
-console.log(useDir)
-  const checkVal = await fse.pathExists(useDir);
-console.log(checkVal)
-  return checkVal
-}
+pathExistsAsync = fname => fse.pathExists(getAbsPath(fname))
+copyAsync = (src, dest) => fse.copy(src,dest)
+ensureDirAsync = dirPath => fse.ensureDir(dirPath)
+removeAsync = dirPath => fse.remove(dirPath)
+emptyDirAsync = dirPath => fse.emptyDir(dirPath)
 
 getAllFiles = async (dir) => {
   const useDir = getAbsPath(dir);
   const filenamesArr = await readdirAsync(useDir);
   const fileStatPromises = filenamesArr.map(async fileName => {
-// !!! ToDo: use system independent dirSeparator
-//    const stats = await statAsync(useDir + '/' + fileName)
     const stats = await statAsync(useDir + path.sep + fileName)
     return {
       filePath: (useDir + path.sep + fileName),
@@ -79,47 +82,38 @@ ajaxGetFileAsync = (url) => {
   });
 }
 
-downloadFile = (url, progressUpdate) => new Promise((resolve, reject) => {
-  edm.download({
-    url,
-    path: "tmpDir",
-    onProgress: progressUpdate,
-  }, (error) => {
-    if(error){
-console.log("ERROR: ");
-        reject()
-        return;
-    }
-console.log("DONE: ");
-    resolve()
-  })
-});
-
-downloadFileAndMove = async (url, fname, progressUpdate) => {
-  const tmpDir = path.dirname(getAbsPath("map_lib/tmpDir/x"));
-console.log(tmpDir)
-  await fse.emptyDir(tmpDir);
-  await downloadFile(url,progressUpdate)
-  const dirlist = await getAllFiles(tmpDir)
-console.log(dirlist)
-  if ((dirlist!=null)&&(dirlist.length>0)){
-    await fse.move(dirlist[0].filePath,getAbsPath(fname),{overwrite: true}, err => {
-      if (err) return console.error(err)
-      console.log('success!')
-      console.log(getAbsPath(fname))
-    })
+downloadFile = async (url, dir, fname, progressUpdate) => {
+  const dirTmp = htmlDecode(dir.replace(/\\\\/g, '\\'));
+  const directory = dirTmp.replace( /[<>"\/|?*]+/g, '_' )
+  const fTmp = htmlDecode(fname);
+  const filename = fTmp.replace( /[<>:"\/\\|?*]+/g, '_' );
+  const wList = BrowserWindow.getAllWindows();
+  //  return edl.download(BrowserWindow.getFocusedWindow(),url,{
+  if ((wList!=null)&&(wList[0]!=null)) {
+    return edl.download(wList[0],url,{
+        filename,
+        directory,
+        onProgress: progressUpdate,
+      })
+  } else {
+console.log("DANGER! - no window exists!!!")
   }
-}
+};
 
-downloadFiles = async (filelist,listProgress,donwloadProgress) => {
+downloadFiles = async (usbPath,filelist,listProgress,donwloadProgress) => {
   const tmpTotal = filelist.length;
-  for (const [index, file] of filelist.entries()) {
+  for (let [index, file] of filelist.entries()) {
     if (listProgress!=null){
       listProgress(index,tmpTotal,file);
     }
-    await downloadFileAndMove(file.url,file.fName,donwloadProgress)
-    console.log("done ep")
-  }
+    let tmpDir = "";
+    if (isWin()) {
+      tmpDir = path.dirname(path.resolve(usbPath,file.fName));
+    } else {
+      tmpDir = path.dirname(usbPath+getAbsPath(file.fName));
+    }
+    await downloadFile(file.url,tmpDir,path.basename(file.fName),donwloadProgress)
+  };
   if (listProgress!=null){
     listProgress(0,0,undefined);
   }
@@ -182,3 +176,5 @@ getFileNameSlash = (curPath) => {
   }
   return retStr;
 }
+
+getLocale = () => app.getLocale()

@@ -4,6 +4,7 @@ import { withStyles } from '@material-ui/core/styles';
 import MediaStoreItem from './media-store-item.js';
 import EpList from './ep-list.js';
 import MetadataConfigDialog from './metadata-config-dialog.js';
+import EpItemDialog from './ep-item-dialog.js';
 import GridList from '@material-ui/core/GridList';
 import GridListTile from '@material-ui/core/GridListTile';
 import GridListTileBar from '@material-ui/core/GridListTileBar';
@@ -14,7 +15,7 @@ import CardMedia from '@material-ui/core/CardMedia';
 import CardContent from '@material-ui/core/CardContent';
 import CardActions from '@material-ui/core/CardActions';
 import CheckIcon from '@material-ui/icons/CheckCircle';
-import Button from '@material-ui/core/Button';
+import Fab from '@material-ui/core/Fab';
 import AddIcon from '@material-ui/icons/Add';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
@@ -24,7 +25,7 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import CloseIcon from '@material-ui/icons/Close';
 import IconButton from '@material-ui/core/IconButton';
 import Modal from '@material-ui/core/Modal';
-import { getImgOfSerie, getImgOfType, isEmptyObj } from '../utils/obj-functions';
+import { getImgOfObj, getImgOfType, isEmptyObj } from '../utils/obj-functions';
 import {getIdFromItem} from '../utils/api';
 import {iso639Langs} from '../iso639-1-full.js'
 
@@ -35,7 +36,6 @@ const styles = theme => ({
     maxWidth: 685,
     color: 'whitesmoke',
     backgroundColor: '#111',
-    height: 470,
     flexWrap: 'wrap',
   },
   card: {
@@ -164,16 +164,16 @@ const LanguageHeader = (props) => {
 }
 
 const SerieGridBar = (props) => {
-  const { classes, serie, serInx, myTitles, onMyTitlesUpdate } = props;
+  const { classes, serie, serInx, featuredTitles, onFeaturedTitlesUpdate } = props;
 
   const handleUncheck = (e) => {
     e.stopPropagation();
-    onMyTitlesUpdate(serie,"delete")
+    onFeaturedTitlesUpdate(serie,"delete")
   };
 
   const handleAdd = (e) => {
     e.stopPropagation();
-    onMyTitlesUpdate(serie,"add")
+    onFeaturedTitlesUpdate(serie,"add")
   };
 
   return (
@@ -193,7 +193,7 @@ const SerieGridBar = (props) => {
           <IconButton
             className={classes.icon}
           >
-            {isInTitleList(serie,myTitles)
+            {isInTitleList(serie,featuredTitles)
               ? (<CheckIcon
                     onClick={handleUncheck}
                     color="primary"
@@ -208,7 +208,14 @@ const SerieGridBar = (props) => {
 
 const GridBarCreateNew = (props) => {
   const { classes, filter } = props;
-  const typeStr = (filter==="aud")? "audio" : "video";
+  let typeStr = "video";
+  if (filter==="aud"){
+    typeStr = "audio";
+  } else if (filter==="epub"){
+    typeStr = "Book (EPUB)";
+  } else if (filter==="html"){
+    typeStr = "Training (html)";
+  }
   const titleStr = "New " + typeStr + " title";
   return (
       <GridListTileBar
@@ -218,13 +225,12 @@ const GridBarCreateNew = (props) => {
           title: classes.title,
         }}
         actionIcon={
-          <Button
-            variant="fab"
+          <Fab
             color="primary"
             className={classes.addIcon}
           >
             <AddIcon/>
-          </Button>
+          </Fab>
         }
       >
       </GridListTileBar>
@@ -235,6 +241,7 @@ class MediaStore extends React.Component {
   state = {
     open: false,
     editOpen: false,
+    editEpisodeOpen: false,
     createNew: false,
     curLang: undefined,
     showAllEp: false,
@@ -244,6 +251,17 @@ class MediaStore extends React.Component {
   handleEditClose = (e) => {
     this.setState({editOpen: false, createNew: false})
   };
+
+  handleEpEditClose = (e) => {
+    this.setState({editEpisodeOpen: false})
+  };
+
+  handleAddTitle = (obj) => {
+    if (this.props.onAddTitle!=null) {
+      this.props.onAddTitle(obj)
+      this.setState({curSer: obj})
+    }
+  }
 
   handleShowList = () => {
     this.setState({
@@ -266,7 +284,7 @@ class MediaStore extends React.Component {
     })
   };
 
-  handleSetEditMode = (e) => {
+  handleSetEditMode = (ev) => {
 console.log(this.state)
     this.setState({
       curLang: this.state.curSer.language,
@@ -274,6 +292,15 @@ console.log(this.state)
       editOpen: true,
       createNew: false,
       open: false
+    })
+  }
+
+  handleEditEpClick = (inx) => {
+    this.setState({
+      curLang: this.state.curSer.language,
+      editEpisodeOpen: true,
+      createNew: false,
+      curEpInx: inx,
     })
   }
 
@@ -302,14 +329,18 @@ console.log(lang)
   }
 
   render = () => {
-    const { classes, titles, myTitles, languages, filter, usbPath } = this.props;
-    const { showAllEp, curSer, curLang } = this.state;
+    const { classes, titles, featuredTitles, languages, filter, usbPath } = this.props;
+    const { showAllEp, curSer, curEpInx, curLang } = this.state;
     let curIsSerie = ((curSer!=null)
                       &&(curSer.fileList!=null)
                       &&(curSer.fileList.length>1));
     let useBkgrdColor = 'rgba(15, 4, 76, 0.68)';
     if (filter==="vid"){
       useBkgrdColor = 'rgba(255, 215, 0, 0.78)';
+    } else if (filter==="epub"){
+      useBkgrdColor = 'rgba(120, 215, 120, 0.78)';
+    } else if (filter==="html"){
+      useBkgrdColor = 'rgba(81, 184, 233, 0.68)';
     }
     const subheaderRootStyle = {
       paddingTop: 35,
@@ -351,7 +382,7 @@ console.log(lang)
                 />
               </GridListTile>
               {filteredSerList.map((ser,serInx) => {
-                const imgSrcStr = getImgOfSerie(usbPath,ser);
+                const imgSrcStr = getImgOfObj(usbPath,ser);
                 return (
                   <GridListTile
                     key={serInx}
@@ -363,8 +394,8 @@ console.log(lang)
                       classes={classes}
                       serie={ser}
                       serInx={serInx}
-                      myTitles={myTitles}
-                      onMyTitlesUpdate={this.props.onMyTitlesUpdate}
+                      featuredTitles={featuredTitles}
+                      onFeaturedTitlesUpdate={this.props.onFeaturedTitlesUpdate}
                       onClick={this.props.onClick}/>
                   </GridListTile>
                 )})}
@@ -413,39 +444,39 @@ console.log(lang)
                  {curIsSerie && !showAllEp && (<IconButton
                    className={classes.actionButton}
                    onClick={this.handleShowList}><ExpandMoreIcon nativeColor="grey"/></IconButton>)}
-                 <Button
+                 <Fab
                    color="primary"
-                   variant="raised"
                    onClick={this.handleSetEditMode}>
                    <CreateIcon />
-                 </Button>
-                 <Button
+                 </Fab>
+                 <Fab
                    color="secondary"
-                   variant="raised"
                    onClick={this.handleDelete}>
                    <DeleteIcon />
-                 </Button>
-                 <Button
-                   variant="fab"
+                 </Fab>
+                 <Fab
                    onClick={this.handleClose}
                    className={classes.floatingButton}
                    color="primary"
                  >
                    <CloseIcon />
-                 </Button>
+                 </Fab>
                </CardActions>
              </div>)}
              {(curSer!=null)&&(!showAllEp)
              && (<CardMedia
                  className={classes.moreDetailImg}
-                 image={getImgOfSerie(usbPath,curSer)}
+                 image={getImgOfObj(usbPath,curSer)}
                  title={curSer.title}
                />)}
              {curIsSerie && showAllEp
              && (<EpList
                serie={curSer}
                isPaused={false}
-               imgSrc={getImgOfSerie(usbPath,curSer)}/>)}
+               usbPath={usbPath}
+               allowEdit={true}
+               onEdit={this.handleEditEpClick}
+               imgSrc={getImgOfObj(usbPath,curSer)}/>)}
            </Card>
         </Modal>
         <MetadataConfigDialog
@@ -459,7 +490,19 @@ console.log(lang)
           lang={curLang}
           onClose={this.handleEditClose}
           onAddTitle={this.props.onAddTitle}
-          onDelete={this.handleDelete}
+        />
+        <EpItemDialog
+          usbPath={this.props.usbPath}
+          usbHash={this.props.usbHash}
+          open={this.state.editEpisodeOpen}
+          createNew={this.state.createNew}
+          item={curSer}
+          epInx={curEpInx}
+          backgroundColor={useBkgrdColor}
+          filter={filter}
+          lang={curLang}
+          onClose={this.handleEpEditClose}
+          onAddTitle={this.handleAddTitle}
         />
       </div>
     )

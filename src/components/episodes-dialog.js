@@ -1,9 +1,11 @@
 import React from 'react';
+import PropTypes from 'prop-types';
+import { withStyles } from '@material-ui/core/styles';
 import path from 'path';
 import { unique } from 'shorthash';
 import { getRelPath,
           getFileName, getAllFiles } from '../utils/file-functions';
-import { isPathInsideUsb } from '../utils/obj-functions';
+import { isPathInsideUsb, getLocalMediaFName } from '../utils/obj-functions';
 import Button from '@material-ui/core/Button';
 import FolderOpen from '@material-ui/icons/FolderOpen';
 import Dialog from '@material-ui/core/Dialog';
@@ -11,25 +13,27 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import Snackbar from '@material-ui/core/Snackbar';
+import RegExDialog from './reg-ex-dialog';
 import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
+import { Regex } from 'mdi-material-ui';
 import update from 'immutability-helper';
-//import './fix-create-class' // Workaround for using 'react-data-grid-addons'
-//import './fix-prop-types'
 import ReactDataGrid from 'react-data-grid';
+//import { Formatters } from 'react-data-grid-addons';
+import { withNamespaces } from 'react-i18next';
 
-const styles = {
+const styles = theme => ({
   dialog: {
     width: 500,
     minWidth: 400,
     zIndex: 2000,
   },
   subheader: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 400,
-    lineHeight: '30px',
+    paddingRight: 0,
     color: "rgba(0, 0, 0, 0.770588)",
-    fontFamily: "Roboto, sans-serif"
+    fontFamily: "Roboto, sans-serif",
   },
   close: {
     width: 10,
@@ -37,13 +41,20 @@ const styles = {
   },
   groupHeader: {
     display: 'flex',
-    paddingTop: 20,
-  }
-};
+    paddingTop: 10,
+  },
+  dialogTitle: {
+    paddingTop: 60,
+  },
+  button: {
+  },
+})
 
 const validExtList = (typeStr) => {
   const tmpValidList = {
     'aud': ['mp3'],
+    'epub': ['opf'],
+    'html': ['html'],
     'vid': ['mp4'],
   }
   let retList = [];
@@ -53,7 +64,9 @@ const validExtList = (typeStr) => {
   return retList
 }
 
-export default class EpisodesDialog extends React.Component {
+//const { ImageFormatter } = Formatters;
+
+class EpisodesDialog extends React.Component {
   constructor(props) {
     super(props);
     const { selectedIndexes} = props;
@@ -63,24 +76,33 @@ export default class EpisodesDialog extends React.Component {
     this._columns = [
       {
         key: 'id',
-        name: 'ID',
         width: 80,
         defaultChecked: true
       },
       {
         key: 'title',
-        name: 'Title',
         editable: true
       },
       {
-        key: 'fname',
-        name: 'Filename',
+        key: 'descr',
+        editable: true
+      },
+/*
+      {
+        key: 'image',
+        formatter: ImageFormatter,
         editable: false
-      }
+      },
+*/
+      {
+        key: 'fname',
+        editable: false
+      },
     ];
 
     this.state = {
       openSnackbar: false,
+      openRegEx: false,
       snackbarMessage: "",
       changedField: false,
       allEmpty: false,
@@ -96,9 +118,16 @@ export default class EpisodesDialog extends React.Component {
     if (curList!=null) {
       let rows = curList.map((item,i) => {
         selectedIndexes.push(i)
+        let image = undefined;
+        if ((item.image!=null)&&(item.image.origin==="Local")) {
+          const {usbPath} = this.props;
+          image = getLocalMediaFName(usbPath,item.image.filename);
+        }
         return {
           id: i+1,
           title: item.title,
+          descr: item.descr,
+          image,
           fname: getFileName(item.filename),
         }
       })
@@ -109,6 +138,7 @@ export default class EpisodesDialog extends React.Component {
   componentDidMount = () => {
     const {epList, curPath, createNew} = this.props;
     if (epList!=null){
+console.log(epList)
       this.updateRows(epList)
     }
     if (curPath!=null){
@@ -122,6 +152,7 @@ export default class EpisodesDialog extends React.Component {
   componentWillReceiveProps = (nextProps) => {
     const {epList, curPath, createNew } = nextProps;
     if ((epList!=null)&&(epList!==this.props.epList)){
+console.log(epList)
       this.updateRows(epList)
     }
     if ((curPath!==this.props.curPath)){
@@ -137,26 +168,42 @@ export default class EpisodesDialog extends React.Component {
       const copy = this.state.curList.filter((item,i) => {
         return (this.state.selectedIndexes.indexOf(i)>=0)
       }).map((item,i) => {
+        const tempCopy = this.state.rows[i];
         return {
           id: i,
-          title: this.state.rows[i].title,
+          title: tempCopy.title,
+          descr: tempCopy.descr,
+          image: item.image,
           filename: item.filename,
         }
       });
       const curPath = this.state.curPath;
+      if (curPath!=null){
 console.log(curPath)
 console.log(unique(curPath))
-      this.props.onSave(copy,curPath);
+        this.props.onSave(copy,curPath);
+      }
     }
 	}
 
   renderHeader = (headerStr) => {
-    return <ListSubheader style={styles.subheader}>{headerStr}</ListSubheader>
+    const {classes} = this.props;
+    return <ListSubheader className={classes.subheader}>{headerStr}</ListSubheader>
   }
 
   rowGetter = (i) => {
     return this.state.rows[i];
   };
+
+  getColumns = () => {
+    const {t} = this.props;
+    return this._columns.map(column => {
+      const resObj = {}
+      Object.keys(column).forEach(k => resObj[k] = column[k]);
+      resObj.name = t(column.key)
+      return resObj;
+    })
+  }
 
   handleGridRowsUpdated = ({ fromRow, toRow, updated }) => {
     let rows = this.state.rows.slice();
@@ -203,6 +250,7 @@ console.log(unique(curPath))
         filename: getRelPath(this.props.usbPath,item.filePath)
       }
     });
+console.log(validFiles)
     this.updateRows(validFiles)
   };
 
@@ -214,10 +262,19 @@ console.log(unique(curPath))
     }
   }
 
+  handleRegEx = () => {
+    const { curPath } = this.state;
+console.log(curPath)
+    this.setState({
+      openRegEx: true,
+    })
+  }
+
   handleSelectFolder = () => {
+    const {t, usbPath} = this.props;
     const resObj = window.showOpenDialog({
-        defaultPath: this.props.usbPath,
-        buttonLabel: "Set path",
+        defaultPath: usbPath,
+        buttonLabel: t("setPath"),
         properties: [
             'openDirectory', (fileNames) => {
               if(fileNames === undefined){
@@ -230,9 +287,9 @@ console.log(unique(curPath))
     });
     if (resObj!=null){
       const checkStr = resObj[0];
-      const relCheckStr = getRelPath(this.props.usbPath,checkStr);
-      if (!isPathInsideUsb(checkStr,this.props.usbPath)) {
-        const errMsgStr = "Directories outside the selected drive (" + this.props.usbPath + ") are not allowed, please select a child directory!";
+      const relCheckStr = getRelPath(usbPath,checkStr);
+      if (!isPathInsideUsb(checkStr,usbPath)) {
+        const errMsgStr = t("pathErrMsg1") + " (" + this.props.usbPath + ") " +t("pathErrMsg2");
         this.setState({
           snackbarMessage: errMsgStr,
           openSnackbar: true,
@@ -248,25 +305,54 @@ console.log(unique(curPath))
     this.setState({ openSnackbar: false });
   };
 
+  handleRegExClose = () => {
+    this.setState({ openRegEx: false });
+  };
+
+  handleRegExSave = () => {
+console.log("Save RegEx")
+  };
+
+/*
+{(!isList)||(badgeCnt===0)
+? (<Button
+    color="primary"
+    onClick={this.handleOpenListDialog}>
+    <ActionList />
+  </Button>)
+: (<Badge
+  badgeContent={badgeCnt}
+>
+  <Button
+    color="primary"
+    onClick={this.handleOpenListDialog}>
+    <ActionList />
+  </Button>
+</Badge>)}
+*/
+
   render() {
+    const useColumns = this.getColumns();
+    const { t, classes} = this.props;
     const { curPath,
               openSnackbar, snackbarMessage } = this.state;
     const listActions = [
       <Button
         key="close"
         color="primary"
-        variant="raised"
+        variant="contained"
         onClick={this.props.onClose}>
-        Cancel
+        {t("cancel")}
       </Button>,
       <Button
         key="save"
         color="primary"
-        variant="raised"
+        variant="contained"
         onClick={this.handleSave}>
-        OK
+        {t("ok")}
       </Button>
     ];
+    const regExEnabled = false; // not yet fully implemented
     return (
       <Dialog
         fullScreen
@@ -275,21 +361,31 @@ console.log(unique(curPath))
         onClose={this.props.onClose}
         open={this.props.open}
       >
-        <div style={styles.groupHeader}>
-          {this.renderHeader("Path")}
+        <div className={classes.groupHeader}>
+          {this.renderHeader(t("path"))}
+          {(curPath!=null) && regExEnabled &&
+            <Button
+              className={classes.button}
+              onClick={this.handleRegEx}>
+              <Regex/>
+            </Button>
+          }
           {(curPath!=null) && this.renderHeader(curPath)}
-          <Button
-            variant="raised"
-            size="small"
+          <IconButton
+            className={classes.button}
+            color="primary"
             onClick={this.handleSelectFolder}>
             <FolderOpen/>
-          </Button>
+          </IconButton>
         </div>
-        <DialogTitle id="episodes-title">Episodes</DialogTitle>
+        <DialogTitle
+          className={classes.dialogTitle}
+          id="episodes-title">{t("episode",{count: 100})}
+        </DialogTitle>
         <ReactDataGrid
           rowKey='id'
           enableCellSelect={true}
-          columns={this._columns}
+          columns={useColumns}
           rowSelection={{
             showCheckbox: true,
             enableShiftSelect: true,
@@ -305,6 +401,14 @@ console.log(unique(curPath))
           onGridRowsUpdated={this.handleGridRowsUpdated}
         />
         <DialogActions>{listActions}</DialogActions>
+        {regExEnabled && (<RegExDialog
+          usbPath={this.props.usbPath}
+          open={this.state.openRegEx}
+          orgPath={curPath}
+          lang={"eng"}
+          onClose={this.handleRegExClose}
+          onSaveRegEx={this.handleRegExSave}
+        />)}
         <Snackbar
           anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
           open={openSnackbar}
@@ -321,13 +425,13 @@ console.log(unique(curPath))
               size="small"
               onClick={this.handleSnackbarClose}
             >
-              OK
+              {t("ok")}
             </Button>,
             <IconButton
               key="close"
               aria-label="Close"
               color="inherit"
-              style={styles.close}
+              className={classes.close}
               onClick={this.handleSnackbarClose}
             >
               <CloseIcon />
@@ -338,3 +442,9 @@ console.log(unique(curPath))
     );
   }
 }
+
+EpisodesDialog.propTypes = {
+  classes: PropTypes.object.isRequired,
+};
+
+export default withStyles(styles)(withNamespaces()(EpisodesDialog));

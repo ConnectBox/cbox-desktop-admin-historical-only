@@ -1,5 +1,5 @@
 import url from 'url';
-import {isWin,getHostPathSep} from './file-functions';
+import {isWin,isDevelopment,getHostPathSep,getAppPath} from './file-functions';
 
 export const isEmpty = obj => ((obj==null) || (Object.getOwnPropertyNames(obj).length === 0))
 
@@ -11,12 +11,49 @@ export const arrayToObject = (array, keyField) =>
     return obj
   }, {})
 
-const getOrgPathPrefix = (orgPath) => {
-  let retPath = "cbox:/" + orgPath;
+export const getLocFilePrefix = () => {
+  let retStr = "cbox:/";
   if (isWin) {
-    retPath = "file://" + orgPath.replace(/\\/g, '/');
+    retStr = "file://";
   }
-  return retPath;
+  return retStr;
+}
+
+export const getAppPublicPath = () => {
+  let retStr = getAppPath() + getHostPathSep() + "build";
+  if (isDevelopment) {
+    retStr = getAppPath() + getHostPathSep() + "public";
+  }
+  return retStr;
+}
+
+export const turnBackToSlash = (thePath) => {
+  let retStr = thePath;
+  if (isWin) {
+    retStr = thePath.replace(/\\/g, '/');
+  }
+  return retStr;
+}
+
+export const turnToBackslash = (thePath) => {
+  let retStr = thePath;
+  if (isWin) {
+    const tmpPath = thePath.replace(/\//g, '\\');
+    retStr = tmpPath.replace(/\\\\/g, '\\');
+  }
+  return retStr;
+}
+
+export const removePathPrefix = (thePath) => {
+  let retStr = thePath.replace(/^cbox:\//, '');
+  if (isWin) {
+    retStr = thePath.replace(/^file:\/\//g, '');
+  }
+  return retStr;
+}
+
+const getOrgPathPrefix = (orgPath) => {
+  return getLocFilePrefix()+turnBackToSlash(orgPath);
 }
 
 const stripTrailingSep = (thePath) => {
@@ -57,11 +94,15 @@ export const getImgOfType = (orgPath,type) => {
   let retStr = process.env.PUBLIC_URL +"/icon/clapperboard.png";
   if (type==="aud"){
     retStr = process.env.PUBLIC_URL +"/icon/headphones.png";
+  } else if (type==="epub"){
+    retStr = process.env.PUBLIC_URL +"/icon/book.png";
+  } else if (type==="html"){
+    retStr = process.env.PUBLIC_URL +"/icon/education.png";
   }
   return retStr;
 }
 
-export const getImgOfSerie = (orgPath,ser) => {
+export const getImgOfObj = (orgPath,ser) => {
   const tmpPath = getOrgPathPrefix(orgPath);
   let retStr = process.env.PUBLIC_URL +"/img/Placeholder.png";
   if (ser!=null){

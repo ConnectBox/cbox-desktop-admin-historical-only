@@ -34,12 +34,18 @@ body:after {
 a {
   cursor: pointer;
 }
-a.close {
+button.close {
   z-index: 2;
   float: right;
   display: block;
   background: url("../img/close.png") no-repeat center center;
   background-size: 32px 32px;
+  background-color: Transparent;
+  background-repeat:no-repeat;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+  outline: none;
   width: 32px;
   height: 32px;
   position: absolute;
@@ -201,6 +207,17 @@ body #home-div[data-active=true]  > .serie-div img {
   bottom: 0px;
   margin: 0;
 }
+#footer-epub {
+  z-index: 3;
+  font-size: 18px;
+  position: fixed;
+  right: 0px;
+  left: 0px;
+  height: 100%;
+  top: 70px;
+  bottom: 0px;
+  margin: 0;
+}
 #footer {
   z-index: 3;
   font-size: 18px;
@@ -283,6 +300,8 @@ html:not(.lte8) #footer #pause {
 }
 #footer .ser-title {
   height: 16px;
+  overflow: hidden;
+  text-overflow: clip;
 }
 #footer .audio-title {
   padding-top: 6px;
@@ -506,11 +525,15 @@ div.tooltip-message.tooltip-message-bottom > span {
     padding-left: 8px;
   }
   #home-div > .serie-div img {
-    width: 20%;
-    min-width: 160px;
+    width: 25%;
+    background-color: #dceef5;
+    object-fit: contain;
+    object-position: 0%;
+    min-width: 120px;
     height: 100px;
     float: left;
-    padding: 3px 10px 3px 3px;
+    padding: 3px 0;
+    margin: 0 10px;
   }
   #page_container[data-playing=true] #home-div > .serie-div:last-child,
   #page_container[data-playing=true] #home-div[data-active=true] > div[data-active=true] {

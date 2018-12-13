@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
 import Footer from './footer'
 import CBoxAppBar from './cbox-app-bar';
-import CBoxEditAppBar from './cbox-edit-app-bar';
+import CBoxEditChannel from './cbox-edit-channel';
 import CboxMenuList from './cbox-menu-list';
 import { isEmptyObj } from '../utils/obj-functions';
 import { NavLangSelect, LanguageSelect } from './language-select';
@@ -13,17 +13,23 @@ import { Switch, Route, Link } from 'react-router-dom';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import Drawer from '@material-ui/core/Drawer';
+import Fab from '@material-ui/core/Fab';
 import Button from '@material-ui/core/Button';
-import MyTitlesList from './my-titles-list.js';
+import IconButton from '@material-ui/core/IconButton';
+import CloseIcon from '@material-ui/icons/Close';
+import FeaturedTitlesList from './featured-titles-list.js';
 import TypeLangSelect from './type-lang-select';
 import MediaStore from './media-store.js';
 import Divider from '@material-ui/core/Divider';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import DownloadIcon from '@material-ui/icons/CloudDownload';
+import Snackbar from '@material-ui/core/Snackbar';
+import { BookOpen, TestTube } from 'mdi-material-ui';
 import verge from 'verge';
 import {iso639Langs} from '../iso639-1-full.js'
-import 'react-select/dist/react-select.css';
 import {loadingStateValue} from '../utils/config-data';
+import { withNamespaces } from 'react-i18next';
+import {LiveProvider,LiveEditor,LiveError,LivePreview} from 'react-live'
 
 const defaultBackgroundStyle = {
   height: 'auto',
@@ -31,9 +37,36 @@ const defaultBackgroundStyle = {
   background: 'black'
 };
 
-const versionStr = 'Version 2.05';
+const versionStr = 'Version 2.12';
+
+const codeExample = `const Wrapper = ({ children }) => (
+  <div style={{
+    background: 'papayawhip',
+    width: '100%',
+    padding: '2rem'
+  }}>
+    {children}
+  </div>
+)
+
+const Title = () => (
+  <h3 style={{ color: 'palevioletred' }}>
+    Hello World!
+  </h3>
+)
+
+render(
+  <Wrapper>
+    <Title />
+  </Wrapper>
+)`
+
 
 const styles = theme => ({
+  iFrame: {
+    overflow: 'visible',
+    width: '100%',
+  },
   menuTitle: {
     margin: '15px 0px 4px 20px',
   },
@@ -64,6 +97,21 @@ const styles = theme => ({
     maxWidth: 720,
     fontFamily: "'Work Sans', sans-serif",
     fontSize: 55,
+  },
+  mainMessageWhileEditing: {
+    marginLeft: 50,
+    maxWidth: 720,
+    fontFamily: "'Work Sans', sans-serif",
+    fontSize: 55,
+  },
+  mainMessageComment: {
+    clear: "right",
+    display: "block",
+    marginLeft: 10,
+    maxWidth: 720,
+    fontFamily: "'Work Sans', sans-serif",
+    fontSize: 20,
+    fontStyle: "italic",
   },
   startNowButton: {
     marginTop: 25,
@@ -123,6 +171,14 @@ const styles = theme => ({
         backgroundColor: '#0bde77',
     },
   },
+  debugButton: {
+    marginLeft: 40,
+    marginTop: 10,
+    backgroundColor: 'lightgrey',
+    '&:hover': {
+        backgroundColor: 'grey',
+    },
+  },
   updateButton: {
     width: 70,
     marginLeft: 20,
@@ -176,6 +232,8 @@ class CboxApp extends React.Component {
     editMode: false,
     changedGUID: false,
     chEditMode: false,
+    openSnackbar: false,
+    snackbarMessage: "",
     containerWidth: this.calcContainerWidth(),
   }
 
@@ -214,6 +272,7 @@ class CboxApp extends React.Component {
   }
 
   handleChannelUpdate = (obj) => {
+console.log(obj)
     const validChDef = ((obj!=null)
                         && (obj.title!=null)
                         && (obj.title.length>2));
@@ -231,8 +290,7 @@ class CboxApp extends React.Component {
 
   VideoPlayer = () => (
     <div style={defaultBackgroundStyle}>
-      <Button
-        variant="fab"
+      <Fab
         onClick={this.handleReturnToHome}
         className={this.props.classes.floatingButton}
         color="primary"
@@ -240,11 +298,11 @@ class CboxApp extends React.Component {
         to='/'
       >
         <ChevronLeftIcon />
-      </Button>
+      </Fab>
       <MediaStore
         usbPath={this.props.usbPath}
         usbHash={this.props.usbHash}
-        myTitles={this.props.myTitles}
+        featuredTitles={this.props.featuredTitles}
         titles={this.props.titles}
         myLang={this.props.myLang}
         languages={this.props.languages}
@@ -254,7 +312,7 @@ class CboxApp extends React.Component {
         onPlayNext={this.props.onPlayNext}
         onStartPlay={this.handleStartPlay}
         onSetPaused={this.handleSetPaused}
-        onMyTitlesUpdate={this.props.onMyTitlesUpdate}
+        onFeaturedTitlesUpdate={this.props.onFeaturedTitlesUpdate}
         onAddTitle={this.props.onAddTitle}
         onDeleteTitle={this.props.onDeleteTitle}
         isPaused={this.state.isPaused}
@@ -265,10 +323,14 @@ class CboxApp extends React.Component {
     </div>
   )
 
-  MainInitMessage = () => {
+  MainInitMessage = (isEditMode) => {
+    const { t, classes } = this.props;
     return (
-      <div className={this.props.classes.mainMessage}>
-        Create a media channel
+      <div className={isEditMode? classes.mainMessageWhileEditing : classes.mainMessage}>
+        {t("createChannel")}
+        <span  className={classes.mainMessageComment}>
+          {t("createChannelComment")}
+        </span>
       </div>
     )
   }
@@ -276,7 +338,7 @@ class CboxApp extends React.Component {
 // ToDo: -> ASAP enable write access and then change text to:
 // Share your media channel
   Home = () => {
-    const { classes, loadingState, titles, curView,
+    const { t, classes, loadingState, titles, curView,
             channel, percentList, percentDownload,
             progressTextList, progressTextDownload } = this.props;
     const largeScreen = (this.state.containerWidth>=768);
@@ -285,14 +347,14 @@ class CboxApp extends React.Component {
     const validChDef = (chDefExists
                         && (channel.title.length>2));
     const editChDef = this.state.chEditMode || (!validChDef && chDefExists);
+//    const editChDef = false;
     return (
     <div style={(curView!=null)? defaultBackgroundStyle : null}>
-      {!editChDef && (<CBoxAppBar
-        channel={channel}
+      <CBoxAppBar
         displayMenu={true}
         onLeftIconButtonClick={this.handleToggle}
-      />)}
-      {editChDef && (<CBoxEditAppBar
+      />
+      {editChDef && (<CBoxEditChannel
         channel={channel}
         verifyLength={chDefExists}
         onChannelUpdate={(obj) => this.handleChannelUpdate(obj)}
@@ -316,19 +378,20 @@ class CboxApp extends React.Component {
         && (<CircularProgress
           className={classes.progress}
           size={65} />)}
-      {!validChDef && this.MainInitMessage()}
+      {!validChDef && this.MainInitMessage(editChDef)}
       {!editChDef && !validChDef && (<Button
-        variant="raised"
+        variant="contained"
         className={classes.startNowButton}
         onClick={this.handleStartClick}
         color="primary"
-      >Start Now
+      >{t("startNow")}
       </Button>)}
-      {(!this.props.loading) && validChDef && (<MyTitlesList
+      {(!this.props.loading) && validChDef && (<FeaturedTitlesList
         usbPath={this.props.usbPath}
         usbHash={this.props.usbHash}
-        myTitles={this.props.myTitles}
+        featuredTitles={this.props.featuredTitles}
         titles={titles}
+        channel={channel}
         myLang={this.props.myLang}
         loadingState={loadingState}
         filter=''
@@ -337,7 +400,7 @@ class CboxApp extends React.Component {
         onStartPlay={this.handleStartPlay}
         onReset={this.props.onReset}
         onSetPaused={this.handleSetPaused}
-        onMyTitlesUpdate={this.props.onMyTitlesUpdate}
+        onFeaturedTitlesUpdate={this.props.onFeaturedTitlesUpdate}
         isPaused={this.state.isPaused}
         largeScreen={largeScreen}
         curPlay={this.props.curPlay}
@@ -350,8 +413,7 @@ class CboxApp extends React.Component {
   Audio = () => {
     return (
     <div style={defaultBackgroundStyle}>
-      <Button
-        variant="fab"
+      <Fab
         onClick={this.handleReturnToHome}
         className={this.props.classes.floatingButton}
         color="primary"
@@ -359,11 +421,11 @@ class CboxApp extends React.Component {
         to='/'
       >
         <ChevronLeftIcon />
-      </Button>
+      </Fab>
       <MediaStore
         usbPath={this.props.usbPath}
         usbHash={this.props.usbHash}
-        myTitles={this.props.myTitles}
+        featuredTitles={this.props.featuredTitles}
         titles={this.props.titles}
         myLang={this.props.myLang}
         languages={this.props.languages}
@@ -373,7 +435,7 @@ class CboxApp extends React.Component {
         onPlayNext={this.props.onPlayNext}
         onStartPlay={this.handleStartPlay}
         onSetPaused={this.handleSetPaused}
-        onMyTitlesUpdate={this.props.onMyTitlesUpdate}
+        onFeaturedTitlesUpdate={this.props.onFeaturedTitlesUpdate}
         onAddTitle={this.props.onAddTitle}
         onDeleteTitle={this.props.onDeleteTitle}
         isPaused={this.state.isPaused}
@@ -386,23 +448,123 @@ class CboxApp extends React.Component {
 
   Music = () => (
     <div>
-      <Button variant="fab"
+      <Fab
         onClick={this.handleReturnToHome}
-        secondary={true}
+        color="primary"
         className={this.props.classes.floatingButton}
         component={Link}
         to='/'
       >
         <ChevronLeftIcon />
-      </Button>
+      </Fab>
     </div>
   )
 
   Books = () => (
-    <div/>
+    <div style={defaultBackgroundStyle}>
+      <Fab
+        onClick={this.handleReturnToHome}
+        className={this.props.classes.floatingButton}
+        color="primary"
+        component={Link}
+        to='/'
+      >
+        <ChevronLeftIcon />
+      </Fab>
+      <MediaStore
+        usbPath={this.props.usbPath}
+        usbHash={this.props.usbHash}
+        featuredTitles={this.props.featuredTitles}
+        titles={this.props.titles}
+        myLang={this.props.myLang}
+        languages={this.props.languages}
+        filter='epub'
+        fullList
+        onSelectView={this.props.onSelectView}
+        onPlayNext={this.props.onPlayNext}
+        onStartPlay={this.handleStartPlay}
+        onSetPaused={this.handleSetPaused}
+        onFeaturedTitlesUpdate={this.props.onFeaturedTitlesUpdate}
+        onAddTitle={this.props.onAddTitle}
+        onDeleteTitle={this.props.onDeleteTitle}
+        isPaused={this.state.isPaused}
+        curPlay={this.props.curPlay}
+        curPos={this.props.curPos}
+        curView={this.props.curView}
+      />
+    </div>
   )
 
-  Trainng = () => (<div/>)
+  Pages = () => (
+    <div
+      style={{height: '100%'}}
+    >
+      <Fab
+        onClick={this.handleReturnToHome}
+        color="primary"
+        className={this.props.classes.floatingButton}
+        component={Link}
+        to='/'
+      >
+        <ChevronLeftIcon />
+      </Fab>
+      <LiveProvider
+        style={{position: 'relative', height: '100%', paddingLeft: 90}}
+        code={codeExample}
+        mountStylesheet={false}
+        noInline={true}
+      >
+        <LivePreview
+          style={{
+            padding: 20}}/>
+        <LiveEditor
+          style={{
+            color: 'darkblue',
+            backgroundColor: 'white'}}/>
+        <LiveError
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            backgroundColor: 'lightpink',
+            whiteSpace: 'pre-line'}}/>
+      </LiveProvider>
+    </div>
+  )
+
+  Training = () => (
+    <div style={defaultBackgroundStyle}>
+      <Fab
+        onClick={this.handleReturnToHome}
+        className={this.props.classes.floatingButton}
+        color="primary"
+        component={Link}
+        to='/'
+      >
+        <ChevronLeftIcon />
+      </Fab>
+      <MediaStore
+        usbPath={this.props.usbPath}
+        usbHash={this.props.usbHash}
+        featuredTitles={this.props.featuredTitles}
+        titles={this.props.titles}
+        myLang={this.props.myLang}
+        languages={this.props.languages}
+        filter='html'
+        fullList
+        onSelectView={this.props.onSelectView}
+        onPlayNext={this.props.onPlayNext}
+        onStartPlay={this.handleStartPlay}
+        onSetPaused={this.handleSetPaused}
+        onFeaturedTitlesUpdate={this.props.onFeaturedTitlesUpdate}
+        onAddTitle={this.props.onAddTitle}
+        onDeleteTitle={this.props.onDeleteTitle}
+        isPaused={this.state.isPaused}
+        curPlay={this.props.curPlay}
+        curPos={this.props.curPos}
+        curView={this.props.curView}
+      />
+    </div>
+  )
 
   Bible = () => (<div/>)
 
@@ -412,8 +574,27 @@ class CboxApp extends React.Component {
 
   handleCBoxDownload = () => {
     const {usbPath} = this.props;
-//To Do: Get this right and also allow the parent paths up until the USB root level
     window.ipcRendererSend('download-to-usb',usbPath);
+  }
+
+  handleSnackbarClose = () => {
+    this.setState({ openSnackbar: false });
+  };
+
+  handleCBoxSampleDownload = () => {
+    const {t,usbPath,titles} = this.props;
+    if (titles!=null){
+      this.setState({
+        openSnackbar: true,
+        snackbarMessage: t("usbMustBeEmpty"),
+      })
+    } else {
+      window.ipcRendererSend('download-sample-to-usb',usbPath);
+    }
+  }
+
+  handleDebug = () => {
+    window.ipcRendererSend('open-dev')
   }
 
   AddSerie = (props) => (
@@ -429,36 +610,39 @@ class CboxApp extends React.Component {
     </div>
   )
 
-  About = () => (
-    <div>
-      <Button variant="fab"
-        onClick={this.handleReturnToHome}
-        className={this.props.classes.topButton}
-        color="primary"
-        component={Link}
-        to='/'
-      >
-        <ChevronLeftIcon />
-      </Button>
-      <Divider />
-      <Typography
-        type="title"
-        color="inherit"
-        className={this.props.classes.aboutMainTitle}
-      >ConnectBox Desktop Admin</Typography>
-      <Typography
-        type="title"
-        className={this.props.classes.aboutTitle}
-      >Admin Application for configuring a ConnectBox</Typography>
-      <Typography
-        type="title"
-        className={this.props.classes.aboutTitle}
-      >{versionStr}</Typography>
-    </div>
-  )
+  About = () => {
+    const { t, classes } = this.props;
+    return (
+      <div>
+        <Fab
+          onClick={this.handleReturnToHome}
+          className={classes.topButton}
+          color="primary"
+          component={Link}
+          to='/'
+        >
+          <ChevronLeftIcon />
+        </Fab>
+        <Divider />
+        <Typography
+          type="title"
+          color="inherit"
+          className={classes.aboutMainTitle}
+        >ConnectBox Desktop Admin</Typography>
+        <Typography
+          type="title"
+          className={classes.aboutTitle}
+        >{t('swDescription')}</Typography>
+        <Typography
+          type="title"
+          className={classes.aboutTitle}
+        >{versionStr}</Typography>
+      </div>
+    )
+  }
 
   Settings = () => {
-    const { classes, channel } = this.props;
+    const { t, classes, channel, defaultLang } = this.props;
     const tmpValue = !isEmptyObj(channel)? channel.title : null;
     const textFieldUpdate = (str) => {
       const tmpObj = {
@@ -470,8 +654,7 @@ class CboxApp extends React.Component {
     }
     return (
       <div>
-        <Button
-          variant="fab"
+        <Fab
           onClick={this.handleReturnToHome}
           className={classes.topButton}
           color="primary"
@@ -479,11 +662,11 @@ class CboxApp extends React.Component {
           to='/'
         >
           <ChevronLeftIcon />
-        </Button>
+        </Fab>
         <Divider />
         <CboxTextField
           id="channel_name"
-          label="Channel name"
+          label={t("channelName")}
           verifyLength={true}
           defaultValue={tmpValue}
           onUpdate={textFieldUpdate}
@@ -493,9 +676,9 @@ class CboxApp extends React.Component {
           type="title"
           color="inherit"
           className={classes.menuTitle}
-        >Navigation language:</Typography>
+        >{t("navLang")}:</Typography>
         <NavLangSelect
-          languages={["eng"]}
+          languages={[defaultLang]}
           onSelectUpdate={this.handleNavLang}
         />
         <Divider />
@@ -503,7 +686,7 @@ class CboxApp extends React.Component {
           type="title"
           color="inherit"
           className={classes.menuTitle}
-        >Media content languages:</Typography>
+        >{t("mediaContentLang")}:</Typography>
         <LanguageSelect
           multi={true}
           languages={Object.keys(iso639Langs)}
@@ -515,7 +698,7 @@ class CboxApp extends React.Component {
           type="title"
           color="inherit"
           className={classes.menuTitle}
-        >Default initial languages:</Typography>
+        >{t("defaultInitLang")}:</Typography>
         <LanguageSelect
           multi={true}
           languages={this.props.languages}
@@ -527,14 +710,40 @@ class CboxApp extends React.Component {
           type="title"
           color="inherit"
           className={classes.menuTitle}
-        >Install latest ConnectBox static host files on USB: {this.props.usbPath}</Typography>
+        >{t("installOnUSB")}: {this.props.usbPath}</Typography>
         <Button
-          variant="raised"
+          variant="contained"
           size="small"
           onClick={this.handleCBoxDownload}
           className={classes.downloadButton}
         >
           <DownloadIcon/>
+        </Button>
+        <Typography
+          type="title"
+          color="inherit"
+          className={classes.menuTitle}
+        >{t("installTest")}: {this.props.usbPath}</Typography>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={this.handleCBoxSampleDownload}
+          className={classes.debugButton}
+        >
+          <TestTube/>
+        </Button>
+        <Typography
+          type="title"
+          color="inherit"
+          className={classes.menuTitle}
+        >{t("setDebugMode")}</Typography>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={this.handleDebug}
+          className={classes.debugButton}
+        >
+          <BookOpen/>
         </Button>
       </div>
     )
@@ -559,7 +768,8 @@ console.log(valArr)
   }
 
   render() {
-    const { channel } = this.props;
+    const { t, channel, classes } = this.props;
+    const { openSnackbar, snackbarMessage } = this.state;
     const isCurPlaying = (this.props.curPlay!=null);
     return (
       <div
@@ -577,13 +787,45 @@ console.log(valArr)
             onMenuClick={this.handleMenuClick}
           />
         </Drawer>
+        <Snackbar
+          open={openSnackbar}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          onClose={this.handleClose}
+          autoHideDuration={6000}
+          ContentProps={{
+            'aria-describedby': 'message-id',
+          }}
+          message={<span id="message-id">{snackbarMessage}</span>}
+          action={[
+            <Button
+              key="undo"
+              color="secondary"
+              size="small"
+              onClick={this.handleSnackbarClose}
+            >
+              {t("ok")}
+            </Button>,
+            <IconButton
+              key="close"
+              aria-label="Close"
+              color="inherit"
+              className={classes.close}
+              onClick={this.handleSnackbarClose}
+            >
+              <CloseIcon />
+            </IconButton>,
+          ]}
+
+        />
         <Switch>
           <Route exact path='/' component={this.Home}/>
           <PropsRoute path='/audio' component={this.Audio} test="test"/>
           <Route path='/music' component={this.Music}/>
           <Route path='/books' component={this.Books}/>
-          <Route path='/training' component={this.Trainng}/>
+          <Route path='/training' component={this.Training}/>
+          <Route path='/test' component={this.Test}/>
           <Route path='/bible' component={this.Bible}/>
+          <Route path='/pages' component={this.Pages}/>
           <Route path='/video' component={this.VideoPlayer}/>
           <Route path='/setting' component={this.Settings}/>
           <Route path='/about' component={this.About}/>
@@ -616,7 +858,7 @@ console.log(valArr)
     value={this.state.keyGUID}
   />
   <Button
-    variant="raised"
+    variant="contained"
     size="small"
     disabled={!this.state.changedGUID}
     onClick={this.handleSaveGUID}
@@ -631,4 +873,4 @@ CboxApp.propTypes = {
   theme: PropTypes.object.isRequired,
 };
 
-export default withStyles(styles, { withTheme: true })(CboxApp);
+export default withStyles(styles, { withTheme: true })(withNamespaces()(CboxApp));

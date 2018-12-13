@@ -111,7 +111,7 @@ export class PlayerInfo extends React.Component {
         <div id="play-pause" onClick={(e) => this.handleSetPaused(e)}>
           <p id={playStateStr}></p>
         </div>
-        <a id="closeFooter" className="close" onClick={this.clickedClose}>Close Footer</a>
+        <button id="closeFooter" className="close" onClick={this.clickedClose}>Close Footer</button>
       </div>
     )
   }

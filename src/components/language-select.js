@@ -2,7 +2,6 @@ import React from 'react';
 import Select from 'react-select';
 //import {uniqueArray} from '../utils/obj-functions';
 import './language-select.css';
-import 'react-select/dist/react-select.css';
 import {isEmptyObj} from '../utils/obj-functions'
 import {iso639Langs} from '../iso639-1-full.js'
 
@@ -23,14 +22,22 @@ const styles = {
 }
 
 export const NavLangSelect = (props) => {
-
-  const handleChange = (selArr) => {
+  const handleChange = (selected) => {
+    let selArr = [];
+    if (selected!=null){
+      selected.forEach(obj => {
+        selArr.push(obj.value)
+      });
+    }
     if (props.onSelectUpdate!=null) {
       props.onSelectUpdate(selArr)
     }
   }
-
-  const selectedLang = "eng";
+  const getValue = (opts, val) => opts.find(o => o.value === val);
+  let selectedLang = "eng";
+  if ((props.languages!=null)&&(props.languages.length>0)){
+    selectedLang = props.languages[0];
+  }
   let langData = [];
   Object.keys(iso639Langs).forEach(langKey => {
     langData.push({
@@ -42,12 +49,11 @@ export const NavLangSelect = (props) => {
     <div style={styles.selectWrapper}>
         <Select
            style={styles.select}
-           disabled={true}
-           simpleValue
+           isDisabled={true}
            onChange={(val) => handleChange(val)}
            options={langData}
-           clearable={false}
-           value={selectedLang}
+           isClearable={false}
+           value={getValue(langData, selectedLang)}
          />
     </div>
   )
@@ -62,13 +68,19 @@ export const NavLangSelect = (props) => {
 
 
 export const LanguageSelect = (props) => {
-  const { selLang, languages, onLanguageUpdate, multi } = props;
-
-  const handleChange = (selArr) => {
-    if (onLanguageUpdate!=null) {
-      onLanguageUpdate(selArr)
+  const { selLang, languages, multi } = props;
+  const handleChange = (selected) => {
+    let selArr = [];
+    if (selected!=null){
+      selected.forEach(obj => {
+        selArr.push(obj.value)
+      });
+    }
+    if (props.onLanguageUpdate!=null) {
+      props.onLanguageUpdate(selArr)
     }
   }
+  const getValues = (opts, values) => opts.filter(o => values.indexOf(o.value)>=0);
   let langData = [];
   if ((languages!=null)&&(languages.length>0)){
     languages.forEach(langKey => {
@@ -93,12 +105,13 @@ export const LanguageSelect = (props) => {
         <Select
            style={styles.select}
            autoFocus
-           multi={multi}
+           isMulti={multi}
+           isSearchable={false}
+           isClearable={false}
            onChange={(val) => handleChange(val)}
            options={langData}
-           searchable={true}
-           clearable={false}
-           value={filteredSelLang}
+           name="langSelect"
+           value={getValues(langData,filteredSelLang)}
          />
     </div>
   )

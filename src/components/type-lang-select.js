@@ -17,6 +17,7 @@ import { LanguageSelect } from './language-select';
 import MetadataConfigDialog from './metadata-config-dialog';
 import {iso639Langs} from '../iso639-1-full.js'
 import { menuList } from './cbox-menu-list';
+import { withNamespaces } from 'react-i18next';
 
 const styles = theme => ({
   menuTitle: {
@@ -51,6 +52,16 @@ class TypeLangSelect extends React.Component {
           filter: "vid",
           value: "/video",
         })
+      } else if (nextProps.filter==="epub") {
+        this.setState({
+          filter: "epub",
+          value: "/books",
+        })
+      } else if (nextProps.filter==="html") {
+        this.setState({
+          filter: "html",
+          value: "/training",
+        })
       }
     }
     if (this.props.defaultLang !== nextProps.defaultLang){
@@ -64,6 +75,16 @@ class TypeLangSelect extends React.Component {
       this.setState({
         filter,
         value: "/video",
+      })
+    } else if (filter==="epub") {
+      this.setState({
+        filter,
+        value: "/books",
+      })
+    } else if (filter==="html") {
+      this.setState({
+        filter,
+        value: "/training",
       })
     }
     if (defaultLang != null){
@@ -83,6 +104,8 @@ class TypeLangSelect extends React.Component {
     let filter = "aud";
     if (event.target.value==="/video"){
       filter = "vid"
+    } else if (event.target.value==="/books"){
+      filter = "epub"
     }
     this.setState({
       value: event.target.value,
@@ -91,7 +114,7 @@ class TypeLangSelect extends React.Component {
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, t } = this.props;
     const { filter, curLang } = this.state;
     if (!this.state.configOk){
       return (
@@ -104,13 +127,13 @@ class TypeLangSelect extends React.Component {
             paper: classes.dialogPaper,
           }}
         >
-          <DialogTitle id="form-dialog-title">New title</DialogTitle>
+          <DialogTitle id="form-dialog-title">{t("newTitle")}</DialogTitle>
           <DialogContent
             className={classes.dialogContent}
           >
             <FormControl component="fieldset" className={classes.formControl}>
               <FormLabel component="legend">
-                Media type
+                {t("mediaType")}
               </FormLabel>
               <RadioGroup
                 aria-label="mediaType"
@@ -120,8 +143,8 @@ class TypeLangSelect extends React.Component {
                 onChange={this.handleChange}
               >
                 {menuList.filter(choice => choice.enabled && choice.path!=="/").map(choice => {
-                  const {title, path} = choice;
-                  const labelStr = title;
+                  const {titleId, path} = choice;
+                  const labelStr = t(titleId);
                   return (
                     <FormControlLabel
                       key={path}
@@ -137,7 +160,7 @@ class TypeLangSelect extends React.Component {
               type="title"
               color="inherit"
               className={classes.menuTitle}
-            >Language:</Typography>
+            >{t("language")}:</Typography>
             <LanguageSelect
               languages={Object.keys(iso639Langs)}
               selLang={curLang}
@@ -147,15 +170,15 @@ class TypeLangSelect extends React.Component {
           <DialogActions>
             <Button
               color="primary"
-              variant="raised"
+              variant="contained"
               onClick={this.props.onClose}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button
                 color="primary"
-                variant="raised"
+                variant="contained"
                 onClick={this.handleContinue}>
-                Continue
+                {t("continue")}
             </Button>
           </DialogActions>
         </Dialog>
@@ -185,4 +208,4 @@ TypeLangSelect.propTypes = {
   theme: PropTypes.object.isRequired,
 };
 
-export default withStyles(styles, { withTheme: true })(TypeLangSelect);
+export default withStyles(styles, { withTheme: true })(withNamespaces()(TypeLangSelect));

@@ -10,8 +10,12 @@ import { apiObjGetStorage, apiObjSetStorage } from '../utils/api';
 
 const styles = theme => ({
   titleBar: {
+    alignItems: 'flex-end',
     background:
       'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)',
+  },
+  subtitle: {
+    whiteSpace: 'unset',
   },
   bar: {
     backgroundColor: 'red',
@@ -137,9 +141,13 @@ class EpItemBar extends React.Component {
     const { mSec, mSecDur } = this.state;
     let epTitle = "";
     let idStr = "";
+    let epDescr = <br/>;
     if (episode!=null){
       idStr = episode.id;
       epTitle = episode.title;
+      if (episode.descr!=null) {
+        epDescr = <div style={{whiteSpace:'normal'}}><br/>{episode.descr}</div>;
+      }
       if (epTitle==null){
         epTitle = idStr+1;
       }
@@ -153,10 +161,10 @@ class EpItemBar extends React.Component {
     return (
       <GridListTileBar
         title={epTitle}
-        subtitle={(partOfCurList || isActive) && (<EpItemProgressBar
+        subtitle={(<div>{(partOfCurList || isActive) && (<EpItemProgressBar
                     value={percentVal}
                     classes={classes}
-                  />)}
+                  />)}{epDescr}</div>)}
         classes={{
           root: classes.titleBar,
           title: classes.title,

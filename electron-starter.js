@@ -10,7 +10,7 @@ if (setupEvents.handleSquirrelEvent()) {
 const {app, ipcMain, BrowserWindow, dialog} = require('electron')
 const path = require('path');
 const url = require('url');
-const unzipper = require('unzipper');
+const DecompressZip = require('decompress-zip');
 const lodash = require('lodash');
 const request = require('request');
 const protocols = require('./electron-protocols');
@@ -19,23 +19,58 @@ const SDK = require('./etcher-lib/sdk');
 
 const jsonEqual = (a,b) => JSON.stringify(a) === JSON.stringify(b)
 
-function downloadFile(url, target, fileName, cb) { // Downloads
-    var req = request({
-        method: 'GET',
-        uri: url
-    });
+function unzip(file, target, cb) { // Unzips
+  var out = new DecompressZip(file)
 
-    var out = fse.createWriteStream(target+'/'+fileName);
-    req.pipe(out);
-
-    req.on('end', function() {
-        unzip(target+'/'+fileName, target, function() {
-            if (cb) {
-                cb();
-            }
-        });
-    });
+  out.on('error', function (err) {
+    mainWindow.webContents.send('unzip-error', err)
+  });
+  out.on('extract', function (log) {
+    mainWindow.webContents.send('unzip-end', log)
+    if (cb){
+      cb()
+    }
+  });
+  out.on('progress', function (fileIndex, fileCount) {
+    mainWindow.webContents.send('unzip-progress', JSON.stringify({fileIndex, fileCount}))
+  });
+  out.extract({
+      path: target,
+      filter: function (file) {
+        return file.type !== "SymbolicLink";
+      }
+  });
 }
+
+function showProgress(received,total){
+  mainWindow.webContents.send('download-progress', JSON.stringify({received,total}))
+}
+
+function downloadFile(url, target, fileName, cb) { // Downloads
+  var received_bytes = 0;
+  var total_bytes = 0;
+
+  var req = request({
+      method: 'GET',
+      uri: url
+  });
+
+  var out = fse.createWriteStream(target+'/'+fileName);
+  req.pipe(out);
+  req.on('response', function ( data ) {
+      total_bytes = parseInt(data.headers['content-length' ]);
+  });
+
+  req.on('data', function(chunk) {
+      received_bytes += chunk.length;
+      showProgress(received_bytes, total_bytes);
+  });
+
+  req.on('end', function() {
+    unzip(target+'/'+fileName, target, cb)
+  })
+}
+
 function moveLBoxSharedDir(srcpath, cb) {
 console.log(srcpath)
   fse.move(srcpath +"/LibraryBox/Shared",
@@ -51,14 +86,9 @@ console.log(srcpath)
   })
 }
 
-function unzip(file, target, cb) { // Unzips
-
-    var out = fse.createReadStream(file);
-    out.pipe(unzipper.Extract({ path: target })).on('finish', function () {
-        if (cb) {
-            cb();
-        }
-    });
+function hasExt(urlStr,extStr) {
+  const checkStr = path.extname(urlStr)
+  return (checkStr.toUpperCase()===extStr.toUpperCase())
 }
 
 const scanner = SDK.createScanner({
@@ -87,7 +117,7 @@ function createWindow() {
                 			title : "ConnectBox Desktop Admin",
                       webPreferences: {
                         nodeIntegration: false,
-                        preload:  path.join(__dirname, '/preload.js')
+                        preload:  path.join(__dirname, '/preload.js'),
                       }
                     });
 
@@ -97,10 +127,58 @@ function createWindow() {
   ipcMain.on('stop-scan', () => {
     scanner.stop()
   });
+  ipcMain.on('open-dev', () => {
+    mainWindow.webContents.openDevTools();
+  });
+  ipcMain.on('open-new-window', (event, data) => {
+    let pathname = data.replace(/^cbox:\//, '').replace(/^file:\//, '');
+    let epub = undefined;
+    if (!hasExt(pathname,".htm")&&!hasExt(pathname,".html")) {
+      const checkRegEx = /^(.*epub\/)(.*[^/]+\/)([^/]+)$/;
+      const matches = pathname.match(checkRegEx);
+      if ((matches!=null)&&(matches.length>3)) {
+        pathname = matches[1] + "index.html";
+// Not sure how to detemine what to do here
+// - at the moment this OEBPS/ filter solves one problem
+// - probably needs to be improved later...
+        epub = matches[2].replace(/OEBPS\//, '');
+      }
+    }
+console.log(pathname)
+    secondWindow = new BrowserWindow({
+      width: 1000,
+      height: 650,
+      icon : "favicon.ico",
+      title : "ConnectBox - Preview",
+      webPreferences: {
+        nodeIntegration: false,
+      }
+    });
+    secondWindow.loadURL(url.format({
+      slashes: true,
+      protocol: 'file:',
+      pathname,
+      query: {
+        epub
+      }
+    }));
+    secondWindow.on('closed', function () {
+      mainWindow.webContents.send('second-window-closed')
+      secondWindow = null
+    })
+  });
   ipcMain.on('download-to-usb', (event, data) => {
-    downloadFile('http://www.qombibox.net/cbox-static-latest.zip', data, 'cbox-static-latest.zip', () => {
-// send confirmation - CircularProgress
+console.log("start download of cbox-static-latest.zip")
+    downloadFile('https://storage.googleapis.com/www.qombibox.net/cbox-static-latest.zip', data, 'cbox-static-latest.zip', () => {
 console.log("downloaded cbox-static-latest.zip")
+    });
+  });
+  ipcMain.on('download-sample-to-usb', (event, data) => {
+console.log("start download of cbox-sample-media.zip")
+    downloadFile('https://storage.googleapis.com/www.qombibox.net/cbox-sample-media.zip', data, 'cbox-sample-media.zip', () => {
+console.log("downloaded cbox-sample-media.zip")
+      mainWindow.reload()
+      scanner.start()
     });
   });
   ipcMain.on('move-from-librarybox', (event, data) => {

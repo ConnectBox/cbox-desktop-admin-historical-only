@@ -2,9 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
 import SeriesItem from './series-item.js';
-import Button from '@material-ui/core/Button';
+import Fab from '@material-ui/core/Fab';
 import { Link } from 'react-router-dom';
 import AddIcon from '@material-ui/icons/Add';
+import { withNamespaces } from 'react-i18next';
 
 const styles = theme => ({
   button: {
@@ -35,7 +36,7 @@ const styles = theme => ({
   },
 });
 
-class MyTitlesList extends React.Component {
+class FeaturedTitlesList extends React.Component {
   state = {
     curEditModeInx: undefined,
   };
@@ -53,8 +54,8 @@ class MyTitlesList extends React.Component {
   }
 
   handleTitlesUpdate = (ser) => (action) => {
-    if (this.props.onMyTitlesUpdate!=null){
-      this.props.onMyTitlesUpdate(ser,action)
+    if (this.props.onFeaturedTitlesUpdate!=null){
+      this.props.onFeaturedTitlesUpdate(ser,action)
     }
   }
 
@@ -67,8 +68,8 @@ class MyTitlesList extends React.Component {
   }
 
   render = () => {
-    const { classes,titles, languages,
-            myTitles, myLang, fullList, filter,
+    const { t, classes, channel, titles, languages,
+            featuredTitles, myLang, fullList, filter,
             largeScreen, curView, curPlay, curPos,
             isPaused } = this.props;
     let curTitleList = [];
@@ -81,12 +82,12 @@ class MyTitlesList extends React.Component {
             })
           }
         })
-      } else if ((titles!=null)&&(myTitles!=null)){
-        Object.keys(myTitles).filter(
+      } else if ((titles!=null)&&(featuredTitles!=null)){
+        Object.keys(featuredTitles).filter(
           lang => myLang.indexOf(lang)>=0
         ).forEach((lang) => {
           if (titles[lang]!=null){
-            myTitles[lang].forEach((title) => {
+            featuredTitles[lang].forEach((title) => {
               if (titles[lang][title]!=null){
                 curTitleList.push(titles[lang][title])
               }
@@ -96,11 +97,20 @@ class MyTitlesList extends React.Component {
       }
     }
     const hasCurView = (curView!= null);
+    let featuredStr = t("featured");
+    if ((channel!=null) && (channel.title!=null)) {
+      featuredStr = channel.title;
+    }
+    let showListTitle = ((channel!=null) || (curTitleList.length>0));
+    if (hasCurView) {
+      showListTitle = false;
+    }
     return (
       <div id="home-div"
         data-active={hasCurView}
         data-disabled={(this.state.curEditModeInx!=null)}
       >
+        {showListTitle && (<div className="list-header">{featuredStr}</div>)}
         {(curTitleList.length>0)
             && curTitleList.filter((ser) => {
               return ((ser.mediaType===filter) || (filter===''))
@@ -120,7 +130,7 @@ class MyTitlesList extends React.Component {
                   onSelectView={this.props.onSelectView}
                   onPlayNext={this.props.onPlayNext}
                   onStartPlay={this.handleStartPlay(index)}
-                  onMyTitlesUpdate={this.handleTitlesUpdate(ser)}
+                  onFeaturedTitlesUpdate={this.handleTitlesUpdate(ser)}
                   onSetEditMode={this.handleSetEditMode(index)}
                   curPlay={curPlay}
                   curPos={curPos}
@@ -135,15 +145,14 @@ class MyTitlesList extends React.Component {
             <div
               className="item-div"
             >
-              <Button
+              <Fab
                 className={largeScreen? classes.floatingButtonLScreen : classes.floatingButton }
-                variant="fab"
                 color="primary"
                 component={Link}
                 to='/add'
               >
                 <AddIcon className={classes.addIcon}/>
-              </Button>
+              </Fab>
             </div>
           </div>
       </div>
@@ -151,9 +160,9 @@ class MyTitlesList extends React.Component {
   }
 }
 
-MyTitlesList.propTypes = {
+FeaturedTitlesList.propTypes = {
   classes: PropTypes.object.isRequired,
   theme: PropTypes.object.isRequired,
 };
 
-export default withStyles(styles, { withTheme: true })(MyTitlesList);
+export default withStyles(styles, { withTheme: true })(withNamespaces()(FeaturedTitlesList));

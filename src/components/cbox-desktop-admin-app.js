@@ -8,6 +8,7 @@ import FormControlLabel from '@material-ui/core/FormControlLabel';
 import FormControl from '@material-ui/core/FormControl';
 import FormLabel from '@material-ui/core/FormLabel';
 import Button from '@material-ui/core/Button';
+import { withNamespaces } from 'react-i18next';
 
 const styles = theme => ({
   mainMessage: {
@@ -122,9 +123,10 @@ class CboxDesktopAdminApp extends React.Component {
   }
 
   MainInitMessage = () => {
+    const { t } = this.props;
     return (
       <div className={this.props.classes.mainMessage}>
-        Select a drive
+        {t('selectDrive')}
       </div>
     )
   }
@@ -134,7 +136,7 @@ class CboxDesktopAdminApp extends React.Component {
   }
 
   UsbListView = () => {
-    const { classes, usbList } = this.props;
+    const { t, classes, usbList } = this.props;
     const validUsbDrive = ((usbList!=null)&&(usbList.length>0));
     if (validUsbDrive){
       const radioList = this.getPathList(usbList);
@@ -142,7 +144,7 @@ class CboxDesktopAdminApp extends React.Component {
         <div className={classes.usbList}>
           <FormControl component="fieldset" className={classes.formControl}>
             <FormLabel component="legend">
-              {(usbList.length===1)? "Detected drive" : "Detected drives"}
+              {t('detectedDrive', {count: usbList.length})}
             </FormLabel>
             <RadioGroup
               aria-label="usbDrive"
@@ -170,14 +172,14 @@ class CboxDesktopAdminApp extends React.Component {
     } else {
       return (
         <div className={this.props.classes.usbMessage}>
-          No connected USB drive detected
+          {t('noUSB')}
         </div>
       )
     }
   }
 
   render() {
-    const { classes, usbList } = this.props;
+    const { t, classes, usbList } = this.props;
     const validUsbDrive = ((usbList!=null)&&(usbList.length>0));
     return (
       <div
@@ -190,11 +192,11 @@ class CboxDesktopAdminApp extends React.Component {
         {this.MainInitMessage()}
         {this.UsbListView()}
         {validUsbDrive && (<Button
-          variant="raised"
+          variant="contained"
           className={classes.continueButton}
           onClick={this.handleSelectPath}
           color="primary"
-        >Continue
+        >{t('continue')}
       </Button>)}
     </div>)
   }
@@ -205,4 +207,4 @@ CboxDesktopAdminApp.propTypes = {
   theme: PropTypes.object.isRequired,
 };
 
-export default withStyles(styles, { withTheme: true })(CboxDesktopAdminApp);
+export default withStyles(styles, { withTheme: true })(withNamespaces()(CboxDesktopAdminApp));

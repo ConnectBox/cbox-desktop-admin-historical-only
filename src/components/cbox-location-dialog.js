@@ -13,6 +13,7 @@ import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
+import { withNamespaces } from 'react-i18next';
 import {getNormalizedPath, pathExistsAsync} from '../utils/file-functions'
 
 const styles = theme => ({
@@ -124,9 +125,10 @@ console.log(this.state.value)
   }
 
   MainInitMessage = () => {
+    const {t} = this.props;
     return (
       <div className={this.props.classes.mainMessage}>
-        Select install location
+        {t("selectInstall")}
       </div>
     )
   }
@@ -136,7 +138,7 @@ console.log(this.state.value)
   }
 
   locationListView = () => {
-    const { classes, locationList } = this.props;
+    const { t, classes, locationList } = this.props;
     const validLocationList = ((locationList!=null)&&(locationList.length>0));
     if (validLocationList){
       const radioList = locationList;
@@ -144,7 +146,7 @@ console.log(this.state.value)
         <div className={classes.locationList}>
           <FormControl component="fieldset" className={classes.formControl}>
             <FormLabel component="legend">
-              Detected locations
+              {t("detectedLocations")}
             </FormLabel>
             <RadioGroup
               aria-label="LocationList"
@@ -171,7 +173,7 @@ console.log(this.state.value)
     } else {
       return (
         <div className={this.props.classes.usbMessage}>
-          Preparing install location
+          {t("prepInstallLoc")}
           <CircularProgress
             className={classes.progress}
             size={65} />
@@ -181,7 +183,7 @@ console.log(this.state.value)
   }
 
   render() {
-    const { classes, locationList } = this.props;
+    const { t, classes, locationList } = this.props;
     const changedField = true;
     const validLocationList = ((locationList!=null)&&(locationList.length>0));
     return (
@@ -195,36 +197,37 @@ console.log(this.state.value)
         {this.MainInitMessage()}
         {this.locationListView()}
         {validLocationList && (<Button
-          variant="raised"
+          variant="contained"
           className={classes.continueButton}
           onClick={this.handleSelectPath}
           color="primary"
-        >Continue
+        >
+         {t("continue")}
       </Button>)}
       <Dialog
         open={this.state.openRUsure}
         onClose={this.handleClose}
         aria-labelledby="form-dialog-title"
       >
-        <DialogTitle id="episodes-title">Incompatibility Warning</DialogTitle>
+        <DialogTitle id="episodes-title">{t("incompatibilityWarning")}</DialogTitle>
         <DialogContent>
-          <br/>All content under the "Shared" folder will be moved to a different location
-          <br/>Are you sure you want to install ConnecxtBox here?
+          <br/>{t("moveSharedFolder")}
+          <br/>{t("rUSureInstall")}
         </DialogContent>
         <DialogActions>
           <Button
             color="primary"
-            variant="raised"
+            variant="contained"
             onClick={this.handleClose}>
-            Cancel
+            {t("cancel")}
           </Button>
           {(changedField)
             && (<Button
               color="primary"
-              variant="raised"
+              variant="contained"
               disabled={false}
               onClick={this.handleContinue}>
-              Continue
+              {t("continue")}
             </Button>
           )}
         </DialogActions>
@@ -238,4 +241,4 @@ CboxLocationDialog.propTypes = {
   theme: PropTypes.object.isRequired,
 };
 
-export default withStyles(styles, { withTheme: true })(CboxLocationDialog);
+export default withStyles(styles, { withTheme: true })(withNamespaces()(CboxLocationDialog));

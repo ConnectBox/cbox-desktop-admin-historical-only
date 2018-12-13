@@ -8,7 +8,7 @@ export var iso639Langs = {
     "engName": "Amharic"
   },
   "arb": {
-    "name": " عربي",
+    "name": "عربي",
     "engName": "Arabic"
   },
   "bos": {

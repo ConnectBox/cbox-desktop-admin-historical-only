@@ -12,7 +12,8 @@ import Button from '@material-ui/core/Button';
 import Snackbar from '@material-ui/core/Snackbar';
 import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
-import FileUpload from '@material-ui/icons/FileUpload';
+import { Upload } from 'mdi-material-ui';
+import { withNamespaces } from 'react-i18next';
 
 const styles = {
   button: {
@@ -103,10 +104,11 @@ console.log(page);
   openFile = () => {
 // Possible alternative for later? Import from any local location
 //  and copy to the configure local directory
+    const {t, usbPath} = this.props;
     const resObj = window.showOpenDialog({
-      defaultPath: this.props.usbPath,
+      defaultPath: usbPath,
       filters: [{ name: 'Images', extensions: ['gif', 'jpg', 'jpeg', 'png', 'tif'] }],
-      buttonLabel: "Select image",
+      buttonLabel: t("selectImage"),
       properties: [
         'openFile', (fileNames) => {
           if(fileNames === undefined){
@@ -121,7 +123,7 @@ console.log(page);
       const checkStr = resObj[0];
       const relCheckStr = getRelPath(this.props.usbPath,checkStr);
       if (!isPathInsideUsb(checkStr,this.props.usbPath)) {
-        const errMsgStr = "Images from directories outside the selected drive (" + this.props.usbPath + ") are not allowed, please select an image from a child directory!";
+        const errMsgStr = t("imgErrMsg1") + " (" + this.props.usbPath + ") " +t("imgErrMsg2");
         this.setState({
           snackbarMessage: errMsgStr,
           openSnackbar: true,
@@ -138,6 +140,7 @@ console.log(page);
 
 // Import Icon CC Attribution http://www.happyiconstudio.com/free-mobile-icon-kit.htm
   render() {
+    const { t } = this.props;
     const { openSnackbar, snackbarMessage, imgSrcStr } = this.state;
     let mapppedImgList = [];
     if (this.state.imgs!=null) {
@@ -154,24 +157,24 @@ console.log(page);
       <Button
         key="local-file"
         color="primary"
-        variant="raised"
+        variant="contained"
         onClick={this.openFile}>
-         <FileUpload />
+         <Upload />
       </Button>,
       <Button
         key="cancel"
         color="primary"
-        variant="raised"
+        variant="contained"
         onClick={this.props.onClose}>
-        Cancel
+        {t("cancel")}
       </Button>,
       <Button
         key="ok"
         color="primary"
-        variant="raised"
+        variant="contained"
         disabled={imgSrcStr==null}
         onClick={this.handleSave}>
-        OK
+        {t("ok")}
       </Button>
     ];
     var items = [];
@@ -189,7 +192,7 @@ console.log(page);
         onClose={this.props.onClose}
         open={this.props.open}
       >
-        <DialogTitle id="select-picture-title">Select picture</DialogTitle>
+        <DialogTitle id="select-picture-title">{t("selectImage")}</DialogTitle>
         {(imgSrcStr!=null) && (<img style={styles.image}
                                     src={getLocalMediaFName(this.props.usbPath,imgSrcStr)}
                                     alt="selected"/>)}
@@ -233,7 +236,7 @@ console.log(page);
               size="small"
               onClick={this.handleSnackbarClose}
             >
-              OK
+              {t("ok")}
             </Button>,
             <IconButton
               key="close"
@@ -251,4 +254,4 @@ console.log(page);
   }
 }
 
-export default ImgGrid;
+export default withNamespaces()(ImgGrid);

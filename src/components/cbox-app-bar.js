@@ -5,7 +5,6 @@ import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
-import { Link } from 'react-router-dom';
 import MenuIcon from '@material-ui/icons/Menu';
 
 const styles = {
@@ -41,11 +40,7 @@ const styles = {
 };
 
 const CBoxAppBar = (props) =>  {
-  const { classes, channel, displayMenu } = props;
-  let tmpTitle = <Link to='/init-ch' style={styles.title}><img src={process.env.PUBLIC_URL + '/icon/ConnectBox.png'} alt="" style={styles.logo} /></Link>;
-  if (channel!=null){
-    tmpTitle = <span style={styles.title}>{channel.title}</span>;
-  }
+  const { classes, displayMenu } = props;
   return (
   <AppBar
     className={classes.appbar}
@@ -65,7 +60,7 @@ const CBoxAppBar = (props) =>  {
         color="inherit"
   //        className={styles.flex}
       >
-         {tmpTitle}
+        <img src={process.env.PUBLIC_URL + '/icon/ConnectBox.png'} alt="" style={styles.logo} />
       </Typography>
     </Toolbar>
   </AppBar>

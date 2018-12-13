@@ -69,6 +69,9 @@ export class CboxTextField extends React.Component {
   }
   onChange = (event) => {
     this.verifyValue(event.target.value,this.props.verifyLength,false)
+    if (this.props.onUpdate!=null){
+      this.props.onUpdate(event.target.value)
+    }
   }
   render = () => {
     const hasError = (this.state.errorText.length>0);
