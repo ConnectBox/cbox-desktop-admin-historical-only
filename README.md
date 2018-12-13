@@ -23,6 +23,6 @@ https://github.com/resin-io-modules/drivelist/releases
 
 ## Backwards Compatibility
 
-Existing LibraryBox installations (on a USB stick) is automatically detected by the ConnectBox Desktop Admin software (incl. earlier versions of the BibleBox). You can then select to "upgrade" the USB format to the new ConnectBox format. **Please note:** First make a backup copy of this USB stick.
+Any existing LibraryBox installation (on a USB stick) is automatically detected by the ConnectBox Desktop Admin software (incl. earlier versions of the BibleBox). You can then select to "upgrade" the USB format to the new ConnectBox format. **Please note:** First make a backup copy of this USB stick.
 
 Any "upgraded" content only works on the LibraryBox hardware, however. There is still an option to create another ConnectBox installation on the very same USB stick and have this usable in parallel with the LibraryBox installation (both installations completely independent of each other, but potentially still using the same media content).
