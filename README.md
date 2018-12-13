@@ -3,8 +3,10 @@ ConnectBox desktop admin tool -> Electron executable for Windows, Mac and Linux
 
 Already compiled installer for Windows is available here:
 https://storage.googleapis.com/www.qombibox.net/cbox-admin-setup.exe
+
 disk image for macOS here:
 https://storage.cloud.google.com/www.qombibox.net/ConnectBoxDesktopAdmin-darwin-x64.dmg
+
 and a zipped version, i. e. a smaller size download (must unzip manually):
 https://storage.cloud.google.com/www.qombibox.net/ConnectBoxDesktopAdmin-darwin-x64.zip
 
