@@ -17,9 +17,8 @@ import RegExDialog from './reg-ex-dialog';
 import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import { Regex } from 'mdi-material-ui';
-import update from 'immutability-helper';
 import ReactDataGrid from 'react-data-grid';
-//import { Formatters } from 'react-data-grid-addons';
+import { Formatters } from 'react-data-grid-addons';
 import { withNamespaces } from 'react-i18next';
 
 const styles = theme => ({
@@ -64,7 +63,37 @@ const validExtList = (typeStr) => {
   return retList
 }
 
-//const { ImageFormatter } = Formatters;
+const { ImageFormatter } = Formatters;
+
+const columns = [
+  {
+    key: 'id',
+    name: 'id',
+    width: 80,
+    defaultChecked: true
+  },
+  {
+    key: 'title',
+    name: 'title',
+    editable: true
+  },
+  {
+    key: 'descr',
+    name: 'descr',
+    editable: true
+  },
+  {
+    key: 'image',
+    name: 'image',
+    formatter: ImageFormatter,
+    editable: false
+  },
+  {
+    key: 'fname',
+    name: 'fname',
+    editable: false
+  },
+];
 
 class EpisodesDialog extends React.Component {
   constructor(props) {
@@ -73,39 +102,11 @@ class EpisodesDialog extends React.Component {
     this.onRowsSelected.bind(this);
     this.onRowsDeselected.bind(this);
     this.state = { selectedIndexes }
-    this._columns = [
-      {
-        key: 'id',
-        width: 80,
-        defaultChecked: true
-      },
-      {
-        key: 'title',
-        editable: true
-      },
-      {
-        key: 'descr',
-        editable: true
-      },
-/*
-      {
-        key: 'image',
-        formatter: ImageFormatter,
-        editable: false
-      },
-*/
-      {
-        key: 'fname',
-        editable: false
-      },
-    ];
 
     this.state = {
       openSnackbar: false,
       openRegEx: false,
       snackbarMessage: "",
-      changedField: false,
-      allEmpty: false,
       rows: [],
       selectedIndexes: [],
       curList: [],
@@ -118,6 +119,11 @@ class EpisodesDialog extends React.Component {
     if (curList!=null) {
       let rows = curList.map((item,i) => {
         selectedIndexes.push(i)
+        const fname = getFileName(item.filename);
+        let title = item.title;
+        if (title==null) {
+          title = path.basename(fname,path.extname(fname));
+        }
         let image = undefined;
         if ((item.image!=null)&&(item.image.origin==="Local")) {
           const {usbPath} = this.props;
@@ -125,10 +131,10 @@ class EpisodesDialog extends React.Component {
         }
         return {
           id: i+1,
-          title: item.title,
+          title,
           descr: item.descr,
           image,
-          fname: getFileName(item.filename),
+          fname,
         }
       })
       this.setState({ rows, curList, selectedIndexes });
@@ -138,7 +144,6 @@ class EpisodesDialog extends React.Component {
   componentDidMount = () => {
     const {epList, curPath, createNew} = this.props;
     if (epList!=null){
-console.log(epList)
       this.updateRows(epList)
     }
     if (curPath!=null){
@@ -152,7 +157,6 @@ console.log(epList)
   componentWillReceiveProps = (nextProps) => {
     const {epList, curPath, createNew } = nextProps;
     if ((epList!=null)&&(epList!==this.props.epList)){
-console.log(epList)
       this.updateRows(epList)
     }
     if ((curPath!==this.props.curPath)){
@@ -197,7 +201,7 @@ console.log(unique(curPath))
 
   getColumns = () => {
     const {t} = this.props;
-    return this._columns.map(column => {
+    return columns.map(column => {
       const resObj = {}
       Object.keys(column).forEach(k => resObj[k] = column[k]);
       resObj.name = t(column.key)
@@ -206,14 +210,14 @@ console.log(unique(curPath))
   }
 
   handleGridRowsUpdated = ({ fromRow, toRow, updated }) => {
-    let rows = this.state.rows.slice();
-    for (let i = fromRow; i <= toRow; i++) {
-      let rowToUpdate = rows[i];
-      let updatedRow = update(rowToUpdate, {$merge: updated});
-      rows[i] = updatedRow;
-    }
-    this.setState({ rows });
-  }
+    this.setState(state => {
+      const rows = state.rows.slice();
+      for (let i = fromRow; i <= toRow; i++) {
+        rows[i] = { ...rows[i], ...updated };
+      }
+      return { rows };
+    });
+  };
 
   onRowsSelected = (rows) => {
     this.setState({selectedIndexes: this.state.selectedIndexes.concat(rows.map(r => r.rowIdx))});
@@ -442,7 +446,6 @@ console.log("Save RegEx")
     );
   }
 }
-
 EpisodesDialog.propTypes = {
   classes: PropTypes.object.isRequired,
 };
