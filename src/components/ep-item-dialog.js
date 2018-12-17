@@ -308,6 +308,7 @@ console.log(this.props)
             && (<ImgGrid
               usbPath={this.props.usbPath}
               usbHash={this.props.usbHash}
+              imgSrc={imgSrc}
               open={true}
               onClose={this.handleClosePixDialog}
               onSave={this.handleSelectImage}

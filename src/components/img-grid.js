@@ -2,7 +2,8 @@ import React from 'react';
 //import axios from 'axios';
 import './img-grid.css';
 import { getRelPath } from '../utils/file-functions';
-import { isPathInsideUsb, getLocalMediaFName } from '../utils/obj-functions';
+import { isPathInsideUsb, getLocalMediaFName,
+            removeOrgPathPrefix } from '../utils/obj-functions';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogTitle from '@material-ui/core/DialogTitle';
@@ -46,9 +47,24 @@ class ImgGrid extends React.Component {
     imgs: [],
     curQueryStr: "",
     curPage: 1,
-    imgSrcStr: undefined,
+    imgSrc: undefined,
 		loadingState: true,
     hasMoreItems: true,
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (this.props.imgSrc !== nextProps.imgSrc){
+      this.setState({imgSrc: removeOrgPathPrefix(this.props.usbPath,nextProps.imgSrc)})
+    }
+    if (this.props.usbPath !== nextProps.usbPath){
+      this.setState({imgSrc: removeOrgPathPrefix(nextProps.usbPath,this.props.imgSrc)})
+    }
+  }
+
+  componentWillMount() {
+    if (this.props.imgSrc!=null){
+      this.setState({imgSrc: removeOrgPathPrefix(this.props.usbPath,this.props.imgSrc)})
+    }
   }
 
   performSearch = (query,page = 1) => {
@@ -91,7 +107,7 @@ console.log(page);
     if (this.props.onSave!=null){
       const retObj = {
         origin: "Local",
-        filename: this.state.imgSrcStr,
+        filename: this.state.imgSrc,
       };
       this.props.onSave(retObj)
     }
@@ -129,7 +145,7 @@ console.log(page);
           openSnackbar: true,
         })
       } else {
-        this.setState({ imgSrcStr: relCheckStr });
+        this.setState({ imgSrc: relCheckStr });
       }
     }
   }
@@ -141,7 +157,7 @@ console.log(page);
 // Import Icon CC Attribution http://www.happyiconstudio.com/free-mobile-icon-kit.htm
   render() {
     const { t } = this.props;
-    const { openSnackbar, snackbarMessage, imgSrcStr } = this.state;
+    const { openSnackbar, snackbarMessage, imgSrc } = this.state;
     let mapppedImgList = [];
     if (this.state.imgs!=null) {
       mapppedImgList = this.state.imgs.map((item) => {
@@ -172,7 +188,7 @@ console.log(page);
         key="ok"
         color="primary"
         variant="contained"
-        disabled={imgSrcStr==null}
+        disabled={imgSrc==null}
         onClick={this.handleSave}>
         {t("ok")}
       </Button>
@@ -193,8 +209,8 @@ console.log(page);
         open={this.props.open}
       >
         <DialogTitle id="select-picture-title">{t("selectImage")}</DialogTitle>
-        {(imgSrcStr!=null) && (<img style={styles.image}
-                                    src={getLocalMediaFName(this.props.usbPath,imgSrcStr)}
+        {(imgSrc!=null) && (<img style={styles.image}
+                                    src={getLocalMediaFName(this.props.usbPath,imgSrc)}
                                     alt="selected"/>)}
         <div className="main-search-form" style={styles.mainSearchDiv}>
           <div style={styles.grpDiv}>

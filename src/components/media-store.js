@@ -285,7 +285,6 @@ class MediaStore extends React.Component {
   };
 
   handleSetEditMode = (ev) => {
-console.log(this.state)
     this.setState({
       curLang: this.state.curSer.language,
       showAllEp: false,
@@ -315,9 +314,6 @@ console.log(this.state)
 
   handleCreateNew = (ev,filter,lang) => {
     ev.stopPropagation();
-console.log(ev)
-console.log(filter)
-console.log(lang)
     this.setState({
       showAllEp: false,
       editOpen: true,

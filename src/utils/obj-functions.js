@@ -63,6 +63,12 @@ const stripTrailingSep = (thePath) => {
   return thePath;
 }
 
+export const removeOrgPathPrefix = (orgPath,thePath) => {
+  const checkPathPrefix = getOrgPathPrefix(orgPath);
+  const retStr = thePath.replace(checkPathPrefix, '');
+  return retStr;
+}
+
 export const isPathInsideUsb = (thePath, potentialParent) => {
   // This code is copied from https://github.com/domenic/path-is-inside
   thePath = stripTrailingSep(thePath);

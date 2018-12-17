@@ -15,8 +15,8 @@ import CloseIcon from '@material-ui/icons/Close';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import IconButton from '@material-ui/core/IconButton';
-import AvPlayCircle from '@material-ui/icons/PlayCircleOutline';
-import AvPauseCircle from '@material-ui/icons/PauseCircleOutline';
+import AvPlay from '@material-ui/icons/PlayArrow';
+import AvPause from '@material-ui/icons/Pause';
 import ContentAddCircleOutline from '@material-ui/icons/AddCircleOutline';
 import {getImgOfObj} from '../utils/obj-functions';
 import { unique } from 'shorthash';
@@ -65,6 +65,9 @@ const styles = theme => ({
     fontWeight: 600,
     color: 'rgba(255, 255, 255, 0.87)',
   },
+  playPause: {
+    backgroundColor: 'rgba(44,135,213,0.3)',
+  },
   actionButton: {
     width: 100,
   },
@@ -111,6 +114,32 @@ const styles = theme => ({
     position: 'relative',
   },
 })
+
+const PlayButton = (props) => {
+  const { classes, onClick } = props;
+  return (
+    <IconButton
+      className={classes.playPause}
+    >
+      <AvPlay
+        nativeColor="grey"
+        onClick={onClick}/>
+    </IconButton>
+  )
+}
+
+const PauseButton = (props) => {
+  const { classes, onClick } = props;
+  return (
+    <IconButton
+      className={classes.playPause}
+    >
+      <AvPause
+        nativeColor="grey"
+        onClick={onClick}/>
+    </IconButton>
+  )
+}
 
 class SeriesItem extends React.Component {
   state = {
@@ -320,15 +349,15 @@ class SeriesItem extends React.Component {
                             && (curPlay!=null)
                             && (curPlay.curSerie!=null)
                             && (serie === curPlay.curSerie));
-      let playStateIcon = <AvPauseCircle nativeColor="grey" onClick={this.handleSetPaused}/>; // Show pause button while playing
+      let playStateIcon = <PauseButton classes={classes} onClick={this.handleSetPaused}/>;
       const isVideoPlaying = (isCurPlaying && (curPlay.curSerie.mediaType === "vid"));
       const isBookActive = (isCurPlaying && (curPlay.curSerie.mediaType === "epub"));
       const isTrainingActive = (isCurPlaying && (curPlay.curSerie.mediaType === "html"));
       let hideNavigation = isBookActive || isTrainingActive;
       if (!isCurPlaying) {
-        playStateIcon = <AvPlayCircle nativeColor="grey" onClick={(e) => this.handleClickItem(e)}/>;
+        playStateIcon = <PlayButton classes={classes}onClick={(e) => this.handleClickItem(e)}/>;
       } else if (this.props.isPaused) {
-        playStateIcon = <AvPlayCircle nativeColor="grey" onClick={this.handleSetPaused}/>;
+        playStateIcon = <PlayButton classes={classes} onClick={this.handleSetPaused}/>;
       } else if (isVideoPlaying) {
         const tempHeight = (Math.trunc((playerWidth)*9/16));
         hideNavigation = playerHeight -tempHeight < 150; // hide if less than margin
@@ -375,10 +404,10 @@ class SeriesItem extends React.Component {
                      onClick={this.handleBookmark}>{bookmarkIcon}</IconButton>)}
                    {!isPreview && curIsSerie && showAllEp && (<IconButton
                      className={classes.actionButton}
-                     onClick={this.handleCloseShowAllEp}><ExpandLessIcon nativeColor="grey"/></IconButton>)}
+                     onClick={this.handleCloseShowAllEp}><ExpandLessIcon nativeColor="lightgrey"/></IconButton>)}
                    {!isPreview && curIsSerie && !showAllEp && (<IconButton
                      className={classes.actionButton}
-                     onClick={this.handleShowList}><ExpandMoreIcon nativeColor="grey"/></IconButton>)}
+                     onClick={this.handleShowList}><ExpandMoreIcon nativeColor="lightgrey"/></IconButton>)}
                    {isPreview && (<IconButton
                      className={classes.actionButton}
                      onClick={this.handleDownload}><Download nativeColor="grey"/></IconButton>)}

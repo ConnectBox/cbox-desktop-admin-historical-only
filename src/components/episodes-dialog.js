@@ -5,7 +5,8 @@ import path from 'path';
 import { unique } from 'shorthash';
 import { getRelPath,
           getFileName, getAllFiles } from '../utils/file-functions';
-import { isPathInsideUsb, getLocalMediaFName } from '../utils/obj-functions';
+import { isPathInsideUsb, getLocalMediaFName,
+          removeOrgPathPrefix } from '../utils/obj-functions';
 import Button from '@material-ui/core/Button';
 import FolderOpen from '@material-ui/icons/FolderOpen';
 import Dialog from '@material-ui/core/Dialog';
@@ -14,6 +15,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import Snackbar from '@material-ui/core/Snackbar';
 import RegExDialog from './reg-ex-dialog';
+import ImgGrid from './img-grid';
 import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import { Regex } from 'mdi-material-ui';
@@ -65,35 +67,43 @@ const validExtList = (typeStr) => {
 
 const { ImageFormatter } = Formatters;
 
+const defaultColumnProperties = {
+  resizable: true,
+};
+
 const columns = [
   {
     key: 'id',
     name: 'id',
-    width: 80,
+    width: 40,
     defaultChecked: true
   },
   {
     key: 'title',
     name: 'title',
+    width: 200,
     editable: true
   },
   {
     key: 'descr',
     name: 'descr',
+    width: 150,
     editable: true
   },
   {
     key: 'image',
     name: 'image',
     formatter: ImageFormatter,
+    width: 70,
     editable: false
   },
   {
     key: 'fname',
     name: 'fname',
+    width: 150,
     editable: false
   },
-];
+].map(c => ({ ...c, ...defaultColumnProperties }));
 
 class EpisodesDialog extends React.Component {
   constructor(props) {
@@ -106,6 +116,9 @@ class EpisodesDialog extends React.Component {
     this.state = {
       openSnackbar: false,
       openRegEx: false,
+      openPixDialog: false,
+      curRow: undefined,
+      curSelectedPix: "",
       snackbarMessage: "",
       rows: [],
       selectedIndexes: [],
@@ -173,11 +186,20 @@ class EpisodesDialog extends React.Component {
         return (this.state.selectedIndexes.indexOf(i)>=0)
       }).map((item,i) => {
         const tempCopy = this.state.rows[i];
+        let tempImage = item.image;
+        if (tempCopy.image!=null){
+          if (tempImage==null){
+            tempImage = {}
+            tempImage.origin = "Local";
+          }
+          const {usbPath} = this.props;
+          tempImage.filename = removeOrgPathPrefix(usbPath,tempCopy.image);
+        }
         return {
           id: i,
           title: tempCopy.title,
           descr: tempCopy.descr,
-          image: item.image,
+          image: tempImage,
           filename: item.filename,
         }
       });
@@ -190,13 +212,41 @@ console.log(unique(curPath))
     }
 	}
 
+  handleSelectImage = (x) => {
+    const { curRow, rows, curSelectedPix } = this.state;
+    const {usbPath} = this.props;
+    rows[curRow].image = getLocalMediaFName(usbPath,x.filename);
+    this.setState({
+      rows,
+      openPixDialog: false
+    });
+	}
+
+  handleClosePixDialog = () => {
+    this.setState({openPixDialog: false});
+	}
+
+  onCellSelected = ({ rowIdx, idx }) => {
+    if (idx===4){ // This is the "Image" column
+      this.setState({
+        curRow: rowIdx,
+        curSelectedPix: this.state.rows[rowIdx].image,
+        openPixDialog: true
+      });
+    }
+  };
+
   renderHeader = (headerStr) => {
     const {classes} = this.props;
     return <ListSubheader className={classes.subheader}>{headerStr}</ListSubheader>
   }
 
   rowGetter = (i) => {
-    return this.state.rows[i];
+    if (this.state.rows[i]!=null){
+      return JSON.parse(JSON.stringify(this.state.rows[i]));
+    } // else
+    return undefined;
+//    return this.state.rows[i];
   };
 
   getColumns = () => {
@@ -388,8 +438,11 @@ console.log("Save RegEx")
         </DialogTitle>
         <ReactDataGrid
           rowKey='id'
-          enableCellSelect={true}
           columns={useColumns}
+          onColumnResize={(idx, width) =>
+            console.log(`Column ${idx} has been resized to ${width}`)
+          }
+          enableRowSelect="multi"
           rowSelection={{
             showCheckbox: true,
             enableShiftSelect: true,
@@ -401,6 +454,8 @@ console.log("Save RegEx")
           }}
           rowGetter={this.rowGetter}
           rowsCount={this.state.rows.length}
+          enableCellSelect={true}
+          onCellSelected={this.onCellSelected}
           minHeight={500}
           onGridRowsUpdated={this.handleGridRowsUpdated}
         />
@@ -413,6 +468,15 @@ console.log("Save RegEx")
           onClose={this.handleRegExClose}
           onSaveRegEx={this.handleRegExSave}
         />)}
+        {this.state.openPixDialog
+          && (<ImgGrid
+            usbPath={this.props.usbPath}
+            usbHash={this.props.usbHash}
+            imgSrc={this.state.curSelectedPix}
+            open={true}
+            onClose={this.handleClosePixDialog}
+            onSave={this.handleSelectImage}
+          />)}
         <Snackbar
           anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
           open={openSnackbar}

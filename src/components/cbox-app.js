@@ -37,7 +37,7 @@ const defaultBackgroundStyle = {
   background: 'black'
 };
 
-const versionStr = 'Version 2.13';
+const versionStr = 'Version 2.14';
 
 const codeExample = `const Wrapper = ({ children }) => (
   <div style={{

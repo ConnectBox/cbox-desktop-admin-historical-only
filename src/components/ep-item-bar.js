@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
 import GridListTileBar from '@material-ui/core/GridListTileBar';
 import IconButton from '@material-ui/core/IconButton';
-import AvPlayCircle from '@material-ui/icons/PlayCircleOutline';
-import AvPauseCircle from '@material-ui/icons/PauseCircleOutline';
+import AvPlay from '@material-ui/icons/PlayArrow';
+import AvPause from '@material-ui/icons/Pause';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import { apiObjGetStorage, apiObjSetStorage } from '../utils/api';
 
@@ -16,6 +16,14 @@ const styles = theme => ({
   },
   subtitle: {
     whiteSpace: 'unset',
+  },
+  title: {
+    whiteSpace: 'unset',
+    textOverflow: 'clip',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  playPause: {
+    backgroundColor: 'rgba(44,135,213,0.4)',
   },
   bar: {
     backgroundColor: 'red',
@@ -46,9 +54,10 @@ const EpItemProgressBar = (props) => {
 const PlayButton = (props) => {
   const { classes, onClick } = props;
   return (
-    <IconButton>
-      <AvPlayCircle
-        className={classes.title}
+    <IconButton
+      className={classes.playPause}
+    >
+      <AvPlay
         nativeColor="grey"
         onClick={onClick}/>
     </IconButton>
@@ -58,9 +67,10 @@ const PlayButton = (props) => {
 const PauseButton = (props) => {
   const { classes, onClick } = props;
   return (
-    <IconButton>
-      <AvPauseCircle
-        className={classes.title}
+    <IconButton
+      className={classes.playPause}
+    >
+      <AvPause
         nativeColor="grey"
         onClick={onClick}/>
     </IconButton>
@@ -139,6 +149,11 @@ class EpItemBar extends React.Component {
     const { classes, isActive, partOfCurList, episode, curPos,
             isPaused, onSetPaused } = this.props;
     const { mSec, mSecDur } = this.state;
+    const subtitleStyle = {
+      whiteSpace: 'unset',
+      textOverflow: 'clip',
+      backgroundColor: 'rgba(0,0,0,0.3)',
+    };
     let epTitle = "";
     let idStr = "";
     let epDescr = <br/>;
@@ -146,7 +161,7 @@ class EpItemBar extends React.Component {
       idStr = episode.id;
       epTitle = episode.title;
       if (episode.descr!=null) {
-        epDescr = <div style={{whiteSpace:'normal'}}><br/>{episode.descr}</div>;
+        epDescr = <div style={subtitleStyle}><br/>{episode.descr}</div>;
       }
       if (epTitle==null){
         epTitle = idStr+1;
@@ -161,13 +176,15 @@ class EpItemBar extends React.Component {
     return (
       <GridListTileBar
         title={epTitle}
-        subtitle={(<div>{(partOfCurList || isActive) && (<EpItemProgressBar
+        subtitle={(<div>{(partOfCurList || isActive)
+              && (<EpItemProgressBar
                     value={percentVal}
                     classes={classes}
                   />)}{epDescr}</div>)}
         classes={{
           root: classes.titleBar,
           title: classes.title,
+          subtitle: classes.subtitle,
         }}
         actionIcon={
         ((isPaused)||(!isActive))
