@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import { withNamespaces } from 'react-i18next';
+import { withTranslation } from 'react-i18next';
 
 const styles = {
   info:{
@@ -90,4 +90,4 @@ CboxPreview.propTypes = {
   theme: PropTypes.object.isRequired,
 };
 
-export default withStyles(styles, { withTheme: true })(withNamespaces()(CboxPreview));
+export default withStyles(styles, { withTheme: true })(withTranslation()(CboxPreview));

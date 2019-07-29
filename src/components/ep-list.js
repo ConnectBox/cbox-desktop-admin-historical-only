@@ -1,13 +1,13 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { withStyles } from '@material-ui/core/styles';
-import CardContent from '@material-ui/core/CardContent';
-import GridList from '@material-ui/core/GridList';
-import GridListTile from '@material-ui/core/GridListTile';
-import Button from '@material-ui/core/Button';
-import CreateIcon from '@material-ui/icons/Create';
-import { getImgOfObj } from '../utils/obj-functions';
-import EpItemBar from './ep-item-bar.js';
+import React from 'react'
+import PropTypes from 'prop-types'
+import { withStyles } from '@material-ui/core/styles'
+import CardContent from '@material-ui/core/CardContent'
+import GridList from '@material-ui/core/GridList'
+import GridListTile from '@material-ui/core/GridListTile'
+import Button from '@material-ui/core/Button'
+import CreateIcon from '@material-ui/icons/Create'
+import { getImgOfObj } from '../utils/obj-functions'
+import EpItemBar from './ep-item-bar.js'
 
 const styles = theme => ({
   cardContent: {
@@ -31,9 +31,14 @@ const styles = theme => ({
   tileRoot: {
     height: 'auto !important',
   },
+  tileRootSmall: {
+  },
   tileRootRed: {
     backgroundColor: 'red',
     height: 'auto !important',
+  },
+  tileRootRedSmall: {
+    backgroundColor: 'red',
   },
   hidden: {
     display: 'none',
@@ -51,35 +56,53 @@ const styles = theme => ({
 
 const EpList = (props) => {
   const onClickEdit = (ev,inx) => {
-    ev.stopPropagation();
+    ev.stopPropagation()
     props.onEdit(inx)
   }
-  const { classes, serie, curPlay, curEp, curPos, isPaused,
-          usbPath, onSetPaused, onClickPlay, imgSrc, allowEdit } = props;
-  let epList = [];
+  const { classes, serie, curPlay, curEp, curPos, width, isPaused,
+          usbPath, onSetPaused, onClickPlay, imgSrc, allowEdit, useHeight, largeScreen } = props
+  let epList = []
   if ((serie!=null) && (serie.fileList!=null)) {
-    epList = serie.fileList;
+    epList = serie.fileList
   }
-  let curEpInx = 0;
+  let curEpInx = 0
   if (curEp!=null){
-    curEpInx=curEp.id;
+    curEpInx=curEp.id
   }
-  let tmpPlayEp = undefined;
+  let tmpPlayEp = undefined
   if (curPlay!=null){
-    tmpPlayEp = curPlay.curEp;
+    tmpPlayEp = curPlay.curEp
   }
+  let colSize = 2.5
+  //  let curHeight = useHeight-250
+  let curHeight = 300
+  if (width<=380){
+    colSize = 1.1
+    if (curHeight>300){
+      curHeight = 300
+    }
+  }
+console.log(curHeight)
   return (
     <CardContent className={classes.cardContent} >
-      <GridList className={classes.gridList} cols={2.5}>
+      <GridList
+        className={classes.gridList}
+        style={{
+          height: curHeight,
+        }}
+        cols={colSize}
+      >
         {epList.map((ep,inx) => {
-          let useImg = imgSrc;
+          let useImg = imgSrc
           if (ep.image!=null) {
             useImg = getImgOfObj(usbPath,ep)
           }
+          const tileRootClass = (ep===tmpPlayEp) ? classes.tileRootRed : classes.tileRoot
+          const tileRootClassSmall = (ep===tmpPlayEp) ? classes.tileRootRedSmall : classes.tileRootSmall
           return (
             <GridListTile
               key={inx}
-              className={(ep===tmpPlayEp) ? classes.tileRootRed : classes.tileRoot}
+              className={(width>=480) ? tileRootClass : tileRootClassSmall}
             >
               <Button
                 onClick={(e) => {onClickEdit(e,inx)}}
@@ -99,7 +122,7 @@ const EpList = (props) => {
                 curPos={curPos}
                 isPaused={isPaused}
                 onSetPaused={onSetPaused}
-                onClickPlay={onClickPlay}
+                onClickPlay={(idStr) => onClickPlay(inx,idStr)}
               />
             </GridListTile>
           )}
@@ -107,11 +130,11 @@ const EpList = (props) => {
       </GridList>
     </CardContent>
   )
-};
+}
 
 EpList.propTypes = {
   classes: PropTypes.object.isRequired,
   theme: PropTypes.object.isRequired,
-};
+}
 
-export default withStyles(styles, { withTheme: true })(EpList);
+export default withStyles(styles, { withTheme: true })(EpList)

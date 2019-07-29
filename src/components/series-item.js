@@ -1,28 +1,30 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import Tappable from 'react-tappable';
-import { withStyles } from '@material-ui/core/styles';
-import Card from '@material-ui/core/Card';
-import CardMedia from '@material-ui/core/CardMedia';
-import CardContent from '@material-ui/core/CardContent';
-import CardActions from '@material-ui/core/CardActions';
-import Typography from '@material-ui/core/Typography';
-import Snackbar from '@material-ui/core/Snackbar';
-import Fab from '@material-ui/core/Fab';
-import NavChevronLeft from '@material-ui/icons/ChevronLeft';
-import DeleteIcon from '@material-ui/icons/Delete';
-import CloseIcon from '@material-ui/icons/Close';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import ExpandLessIcon from '@material-ui/icons/ExpandLess';
-import IconButton from '@material-ui/core/IconButton';
-import AvPlay from '@material-ui/icons/PlayArrow';
-import AvPause from '@material-ui/icons/Pause';
-import ContentAddCircleOutline from '@material-ui/icons/AddCircleOutline';
-import {getImgOfObj} from '../utils/obj-functions';
-import { unique } from 'shorthash';
-import { Download } from 'mdi-material-ui';
-import EpList from './ep-list.js';
-import { apiObjGetStorage } from '../utils/api';
+import React, { useState, useEffect, useContext } from 'react'
+import { CboxContext } from '../cbox-context'
+import PropTypes from 'prop-types'
+import Tappable from 'react-tappable'
+import { withStyles } from '@material-ui/core/styles'
+import Card from '@material-ui/core/Card'
+import CardMedia from '@material-ui/core/CardMedia'
+import CardContent from '@material-ui/core/CardContent'
+import CardActions from '@material-ui/core/CardActions'
+import Typography from '@material-ui/core/Typography'
+import Snackbar from '@material-ui/core/Snackbar'
+import Fab from '@material-ui/core/Fab'
+import NavChevronLeft from '@material-ui/icons/ChevronLeft'
+import DeleteIcon from '@material-ui/icons/Delete'
+import CloseIcon from '@material-ui/icons/Close'
+import CreateIcon from '@material-ui/icons/Create'
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
+import ExpandLessIcon from '@material-ui/icons/ExpandLess'
+import IconButton from '@material-ui/core/IconButton'
+import AvPlay from '@material-ui/icons/PlayArrow'
+import AvPause from '@material-ui/icons/Pause'
+import ContentAddCircleOutline from '@material-ui/icons/AddCircleOutline'
+import {getImgOfObj} from '../utils/obj-functions'
+import { unique } from 'shorthash'
+import { Download } from 'mdi-material-ui'
+import EpList from './ep-list.js'
+import { apiObjGetStorage } from '../utils/api'
 
 const styles = theme => ({
   cardWrap: {
@@ -66,9 +68,11 @@ const styles = theme => ({
     color: 'rgba(255, 255, 255, 0.87)',
   },
   playPause: {
+    color: 'grey',
     backgroundColor: 'rgba(44,135,213,0.3)',
   },
   actionButton: {
+    color: 'lightgrey',
     width: 100,
   },
   image: {
@@ -84,23 +88,31 @@ const styles = theme => ({
   closeButton: {
     right: -10,
     zIndex: 100,
-    position: 'fixed',
+    position: 'absolute',
   },
   deleteButtonLScreen: {
     left: '75%',
     top: 117,
-//    color: 'white',
-//    backgroundColor: 'red',
     zIndex: 100,
     position: 'absolute',
   },
   deleteButton: {
     left: 132,
-    marginTop: 5,
 //    color: 'white',
 //    backgroundColor: 'red',
     zIndex: 100,
-    position: 'fixed',
+    position: 'absolute',
+  },
+  editButtonLScreen: {
+    left: '75%',
+    top: 60,
+    zIndex: 100,
+    position: 'absolute',
+  },
+  editButton: {
+    left: 80,
+    zIndex: 100,
+    position: 'absolute',
   },
   floatingButton: {
     margin: 0,
@@ -116,379 +128,315 @@ const styles = theme => ({
 })
 
 const PlayButton = (props) => {
-  const { classes, onClick } = props;
+  const { classes, onClick } = props
   return (
     <IconButton
+      onClick={onClick}
       className={classes.playPause}
     >
-      <AvPlay
-        nativeColor="grey"
-        onClick={onClick}/>
+      <AvPlay/>
     </IconButton>
   )
 }
 
 const PauseButton = (props) => {
-  const { classes, onClick } = props;
+  const { classes, onClick } = props
   return (
     <IconButton
+      onClick={onClick}
       className={classes.playPause}
     >
-      <AvPause
-        nativeColor="grey"
-        onClick={onClick}/>
+      <AvPause/>
     </IconButton>
   )
 }
 
-class SeriesItem extends React.Component {
-  state = {
-    message: '',
-    open: false,
-    showAllEp: false,
-    longPressMode: false,
-    serieCurEp: undefined,
-    playerWidth: this.calcContainerWidth(),
-    playerHeight: this.calcContainerHeight(),
-  }
+const SeriesItem = (props) => {
+  const scope = useContext(CboxContext)
+  const { usbPath, usbHash, height, width, titles, languages, myLang,
+          featuredTitles, largeScreen, curView, curPlay, curPos, isPaused } = scope
+  const { classes, serie, disabled, isPreview, 
+          onSetPaused, onSelectView,
+          onPlayNext, onStartPlay, onTitlesUpdate,
+          onSetEditMode, onStartEdit } = props
+  const [message, setMessage] = useState('')
+  const [open, setOpen] = useState(false)
+  const [showAllEp, setShowAllEp] = useState(false)
+  const [longPressMode, setLongPressMode] = useState(false)
+  const [serieCurEp, setSerieCurEp] = useState(undefined)
 
-  calcContainerWidth() {
-    let retVal = document.body.clientWidth;
-    return retVal;
-  }
-
-  calcContainerHeight() {
-    let retVal = document.body.clientHeight;
-    return retVal;
-  }
-
-  restoreCurEp = (obj) => {
-    const { usbHash } = this.props;
-    let tmpEp = undefined;
-    const tmpObj = {curSerie: obj};
+  const restoreCurEp = (obj) => {
+    let tmpEp = undefined
+    const tmpObj = {curSerie: obj}
     apiObjGetStorage(usbHash,tmpObj,"curEp").then((value) => {
       if (value==null){
-        value=0;
+        value=0
       }
       if ((obj!=null) && (obj.fileList!=null)
           && (obj.fileList[value]!=null)){
-        tmpEp=obj.fileList[value];
+        tmpEp=obj.fileList[value]
       }
-      this.setState({serieCurEp: tmpEp})
+      setSerieCurEp(tmpEp)
     }).catch(function(err) {
-      console.error(err);
-    });
+      console.error(err)
+    })
   }
 
-  componentDidMount = () => {
-    const {serie,curPlay} = this.props;
-    window.addEventListener('resize', () => {
-      const playerWidth = this.calcContainerWidth();
-      const playerHeight = this.calcContainerHeight();
-      this.setState({playerWidth,playerHeight});
-    }, false);
-    if (serie!=null){
-      if ((curPlay!=null) && (curPlay.curSerie===serie) && (curPlay.curEp!=null)){
-        this.setState({serieCurEp: curPlay.curEp})
+  useEffect(() => {
+    if (serie){
+      if (curPlay && (curPlay.curSerie===serie) && (curPlay.curEp!=null)){
+        setSerieCurEp(curPlay.curEp)
       } else {
-        this.restoreCurEp(serie);
+        restoreCurEp(serie)
       }
     }
+  }, [serie,curPlay])
+
+  const handleCloseDialog = () => {
+    setShowAllEp(false)
+    onSelectView && onSelectView(undefined)
+  }
+  const handleCloseLongPressMode = () => {
+    setLongPressMode(false)
+    onSetEditMode && onSetEditMode(false)
+  }
+  const handleCloseShowAllEp = () => setShowAllEp(false)
+  const handleDeleteSerie = () => {
+    setLongPressMode(false)
+    onTitlesUpdate && onTitlesUpdate("delete")
+    onSetEditMode&& onSetEditMode(false)
   }
 
-  componentWillReceiveProps = (nextProps) => {
-    const {serie,curPlay} = nextProps;
-    if (serie!=null){
-      if (serie!==this.props.serie){
-        if ((curPlay!=null) && (curPlay.curSerie===serie) && (curPlay.curEp!=null)){
-          this.setState({serieCurEp: curPlay.curEp})
-        } else {
-          this.restoreCurEp(serie);
-        }
-      } else if ((curPlay!=null) && (this.props.curPlay!=null)
-                  && (curPlay.curEp!==this.props.curPlay.curEp)){
-        if ((curPlay.curSerie===serie)
-            && ((this.state.curEp==null)
-                || (curPlay.curEp.id>this.state.curEp.id))){
-          this.setState({serieCurEp: curPlay.curEp})
-        }
-      }
+  const handleDownload = (ev) => {
+    setMessage('Sorry! -> Download is not yet implemented...')
+    setOpen(true)
+  }
+
+  const handleRequestClose = () => {
+    setOpen(false)
+    setShowAllEp(false)
+  }
+
+  const handleShowList = () => setShowAllEp(true)
+  const handleSetPaused = (ev) => {
+    ev.stopPropagation()
+    if (onSetPaused!=null) {
+      onSetPaused(!isPaused)
     }
   }
 
-  handleCloseDialog = () => {
-    this.setState({
-      showAllEp: false,
-    });
-    if (this.props.onSelectView!=null) {
-        this.props.onSelectView(undefined);
-    }
-  }
-
-  handleCloseLongPressMode = () => {
-    this.setState({
-      longPressMode: false,
-    });
-    if (this.props.onSetEditMode!=null){
-      this.props.onSetEditMode(false)
-    }
-  }
-
-  handleCloseShowAllEp = () => {
-    this.setState({
-      showAllEp: false,
-    });
-  }
-
-  handleDeleteSerie = () => {
-    this.setState({
-      longPressMode: false,
-    });
-    if (this.props.onFeaturedTitlesUpdate!=null){
-      this.props.onFeaturedTitlesUpdate("delete")
-    }
-    if (this.props.onSetEditMode!=null){
-      this.props.onSetEditMode(false)
-    }
-  }
-
-  handleDownload = (ev) => {
-    this.setState({
-      message: 'Sorry! -> Download is not yet implemented...',
-      open: true,
-    });
-  }
-
-  handleRequestClose = () => {
-    this.setState({
-      open: false,
-      showAllEp: false,
-    });
-  }
-
-  handleShowList = () => {
-    this.setState({
-      showAllEp: true,
-    });
-  }
-
-  handleSetPaused = (ev) => {
-    ev.stopPropagation();
-    if (this.props.onSetPaused!=null) {
-      this.props.onSetPaused(!this.props.isPaused);
-    }
-  }
-
-  handleClickItemIndex = (index) => {
-    const {serie} = this.props;
-    var tmpEp = undefined;
+  const handleClickItemIndex = (index,idStr) => {
+    var tmpEp = undefined
     if ((serie!=null) && (serie.fileList!=null)
         && (serie.fileList[index]!=null)){
-      tmpEp=serie.fileList[index];
+      tmpEp=serie.fileList[index]
     }
-    if (this.props.onStartPlay!=null) {
-      this.setState({serieCurEp: tmpEp})
-      this.props.onStartPlay(serie,tmpEp);
-    }
-  }
-
-  handleClickItem = (ev) => {
-    ev.stopPropagation();
-    if (!this.state.longPressMode){
-      const {serie,curPlay} = this.props;
-      if ((curPlay==null) && (this.props.onStartPlay!=null)) {
-        this.props.onStartPlay(serie);
-      }
-      if (this.props.onSelectView!=null) {
-        this.props.onSelectView(serie);
-      }
+    if (onStartPlay!=null) {
+console.log(tmpEp)
+      setSerieCurEp(tmpEp)
+      onStartPlay(index,serie,tmpEp)
     }
   }
 
-	handlePressed = (e) => {
-    this.setState({longPressMode: true})
-		console.log('Pressed');
-    if (this.props.onSetEditMode!=null){
-      this.props.onSetEditMode(true)
+  const handleClickItem = (ev) => {
+    ev.stopPropagation()
+    if (!longPressMode){
+      if ((curPlay==null) && (onStartPlay!=null)) {
+        onStartPlay(0,serie)
+      }
+      onSelectView && onSelectView(serie)
     }
+  }
+
+  const handleBookmark = () => {
+console.log("bookmark")
+  }
+
+	const handlePressed = (e) => {
+    setLongPressMode(true)
+    onSetEditMode && onSetEditMode(true)
 	}
 
-  render() {
-    const { classes, serie, curView, curPlay,
-            usbPath, isPreview, largeScreen } = this.props;
-    const { playerHeight, playerWidth, showAllEp, serieCurEp, longPressMode } = this.state;
-    const serImgSrcStr = getImgOfObj(usbPath,serie);
-    let imgSrcStr = serImgSrcStr;
-    let curIsSerie = (serieCurEp!=null);
-    if ((curIsSerie) && (serie!=null) && (serie.fileList!=null)) {
-      curIsSerie = (serie.fileList.length>1);
+  const serImgSrcStr = getImgOfObj(usbPath,serie)
+  let imgSrcStr = serImgSrcStr
+  let curIsSerie = (serieCurEp!=null)
+  if ((curIsSerie) && (serie!=null) && (serie.fileList!=null)) {
+    curIsSerie = (serie.fileList.length>1)
+  }
+  let tmpTitle = serie.title
+  let curEpDescr=""
+  if (serieCurEp!=null){
+    if (serieCurEp.image!=null) {
+      imgSrcStr = getImgOfObj(usbPath,serieCurEp)
     }
-    let tmpTitle = serie.title
-    let curEpDescr="";
-    if (serieCurEp!=null){
-      if (serieCurEp.image!=null) {
-        imgSrcStr = getImgOfObj(usbPath,serieCurEp);
-      }
-      if (serieCurEp.title!=null){
-        curEpDescr = serieCurEp.title
-      } else if (!curIsSerie) {
-        curEpDescr = "";
-      } else {
-        curEpDescr = serieCurEp.id +1;
-      }
-    }
-    let serSubTitle = curEpDescr;
-    if (!curIsSerie) {
-      serSubTitle = serie.description;
-    }
-    if (imgSrcStr == null) {
-      return (
-        <div></div>
-    )} else {
-      const isCurPlaying = ((serie != null)
-                            && (curPlay!=null)
-                            && (curPlay.curSerie!=null)
-                            && (serie === curPlay.curSerie));
-      let playStateIcon = <PauseButton classes={classes} onClick={this.handleSetPaused}/>;
-      const isVideoPlaying = (isCurPlaying && (curPlay.curSerie.mediaType === "vid"));
-      const isBookActive = (isCurPlaying && (curPlay.curSerie.mediaType === "epub"));
-      const isTrainingActive = (isCurPlaying && (curPlay.curSerie.mediaType === "html"));
-      let hideNavigation = isBookActive || isTrainingActive;
-      if (!isCurPlaying) {
-        playStateIcon = <PlayButton classes={classes}onClick={(e) => this.handleClickItem(e)}/>;
-      } else if (this.props.isPaused) {
-        playStateIcon = <PlayButton classes={classes} onClick={this.handleSetPaused}/>;
-      } else if (isVideoPlaying) {
-        const tempHeight = (Math.trunc((playerWidth)*9/16));
-        hideNavigation = playerHeight -tempHeight < 150; // hide if less than margin
-      }
-      let bookmarkIcon = <ContentAddCircleOutline nativeColor="grey" onClick={this.handleBookmark}/>;
-/*
-      if (bookmarkList.indexOf(serie._id)>=0) {
-        bookmarkIcon = <ActionCheckCircle color="grey" onClick={this.handleBookmark}/>;
-      }
-*/
-//      <PausePreviewIcon style={iconStyles} color={red500} hoverColor={greenA200} />
-      const isActiveSerie = ((curView!= null) && (curView === serie));
-      if (hideNavigation) {
-        return <div/>
-      } else if (isActiveSerie) {
-        return (
-          <div
-             style={styles.card}
-             data-active={isActiveSerie}
-             data-playing={isCurPlaying}
-          >
-             <Fab
-               size="small"
-               className={classes.floatingButton}
-               onClick={this.handleCloseDialog} >
-                 <NavChevronLeft />
-             </Fab>
-             <Card className={showAllEp ? classes.cardWrap : classes.card}>
-               <div className={classes.details}>
-                 <CardContent className={classes.content}>
-                   <Typography className={classes.headline} type="headline" component="h2">
-                     {tmpTitle}
-                   </Typography>
-                   <Typography className={classes.description} type="subheading">
-                     {serie.description}
-                   </Typography>
-                   <Typography className={classes.epTitle} type="subheading">
-                     {curEpDescr}
-                   </Typography>
-                 </CardContent>
-                 <CardActions>
-                   {isPreview && (<IconButton
-                     className={classes.actionButton}
-                     onClick={this.handleBookmark}>{bookmarkIcon}</IconButton>)}
-                   {!isPreview && curIsSerie && showAllEp && (<IconButton
-                     className={classes.actionButton}
-                     onClick={this.handleCloseShowAllEp}><ExpandLessIcon nativeColor="lightgrey"/></IconButton>)}
-                   {!isPreview && curIsSerie && !showAllEp && (<IconButton
-                     className={classes.actionButton}
-                     onClick={this.handleShowList}><ExpandMoreIcon nativeColor="lightgrey"/></IconButton>)}
-                   {isPreview && (<IconButton
-                     className={classes.actionButton}
-                     onClick={this.handleDownload}><Download nativeColor="grey"/></IconButton>)}
-                   <IconButton
-                     className={classes.actionButton}
-                    >{playStateIcon}</IconButton>
-                 </CardActions>
-               </div>
-               {!showAllEp && (<CardMedia
-                 className={classes.image}
-                 image={imgSrcStr}
-                 title={serie.title}
-               />)}
-               {showAllEp && (<EpList
-                 serie={serie}
-                 curEp={this.state.serieCurEp}
-                 curPlay={curPlay}
-                 usbPath={usbPath}
-                 curPos={this.props.curPos}
-                 isPaused={this.props.isPaused}
-                 imgSrc={serImgSrcStr}
-                 onClickPlay={this.handleClickItemIndex}
-                 onSetPaused={this.handleSetPaused}
-               />)}
-             </Card>
-            <Snackbar
-              open={this.state.open}
-              message={this.state.message}
-              autoHideDuration={3500}
-            />
-          </div>
-        )
-      } else {
-        return (
-          <Tappable
-            onPress={this.handlePressed}
-            onClick={(e) => this.handleClickItem(e)}
-            className="serie-div shadow"
-            style={(this.props.disabled) ? {cursor: "default"} : null}
-            data-active={isActiveSerie}
-            data-playing={isCurPlaying}
-            data-edit-mode={longPressMode}
-            data-disabled={this.props.disabled}
-          >
-            {longPressMode &&
-              (<Fab
-                size="small"
-                color="primary"
-                className={largeScreen ? classes.deleteButtonLScreen : classes.deleteButton}
-                onClick={this.handleDeleteSerie}
-              >
-                <DeleteIcon />
-              </Fab>
-            )}
-            {longPressMode &&
-              (<Fab
-                size="small"
-                onClick={this.handleCloseLongPressMode}
-                className={largeScreen ? classes.closeButtonLScreen : classes.closeButton}
-              >
-                <CloseIcon />
-              </Fab>
-            )}
-            <div
-              className={unique(serie.title)+'_item item-div'}
-            >
-              <img className="image" src={imgSrcStr} alt="" />
-              <div className="Title">{serie.title}
-                {isPreview && (<div className="Description">{serie.description}</div>)}
-                <div className="EpDescription">{serSubTitle}</div>
-              </div>
-            </div>
-          </Tappable>
-      )}
+    if (serieCurEp.title!=null){
+      curEpDescr = serieCurEp.title
+    } else if (!curIsSerie) {
+      curEpDescr = ""
+    } else {
+      curEpDescr = serieCurEp.id +1
     }
   }
-};
+  let serSubTitle = curEpDescr
+  if (!curIsSerie) {
+    serSubTitle = serie.description
+  }
+  if (imgSrcStr == null) {
+    return <div></div>
+  } else {
+    const isCurPlaying = ((serie != null)
+                          && (curPlay!=null)
+                          && (curPlay.curSerie!=null)
+                          && (serie === curPlay.curSerie))
+    let playStateIcon = <PauseButton classes={classes} onClick={handleSetPaused}/>
+    const isVideoPlaying = (isCurPlaying && (curPlay.curSerie.mediaType === "vid"))
+    const isBookActive = (isCurPlaying && (curPlay.curSerie.mediaType === "epub"))
+    const isTrainingActive = (isCurPlaying && (curPlay.curSerie.mediaType === "html"))
+    let hideNavigation = isBookActive || isTrainingActive
+    if (!isCurPlaying) {
+      playStateIcon = <PlayButton classes={classes}onClick={(e) => handleClickItem(e)}/>
+    } else if (isPaused) {
+      playStateIcon = <PlayButton classes={classes} onClick={handleSetPaused}/>
+    } else if (isVideoPlaying) {
+      const tempHeight = (Math.trunc((width)*9/16))
+      hideNavigation = height -tempHeight < 150 // hide if less than margin
+    }
+    let bookmarkIcon = <ContentAddCircleOutline onClick={handleBookmark}/>
+/*
+    if (bookmarkList.indexOf(serie._id)>=0) {
+      bookmarkIcon = <ActionCheckCircle color="grey" onClick={handleBookmark}/>
+    }
+*/
+//      <PausePreviewIcon style={iconStyles} color={red500} hoverColor={greenA200} />
+    const isActiveSerie = ((curView!= null) && (curView === serie))
+    if (hideNavigation) {
+      return <div/>
+    } else if (isActiveSerie) {
+      return (
+        <div
+           style={styles.card}
+           data-active={isActiveSerie}
+           data-playing={isCurPlaying}
+        >
+           <Fab
+             size="small"
+             className={classes.floatingButton}
+             onClick={handleCloseDialog} >
+               <NavChevronLeft />
+           </Fab>
+           <Card className={showAllEp ? classes.cardWrap : classes.card}>
+             <div className={classes.details}>
+               <CardContent className={classes.content}>
+                 <Typography className={classes.headline} type="headline" component="h2">
+                   {tmpTitle}
+                 </Typography>
+                 <Typography className={classes.description} type="subheading">
+                   {serie.description}
+                 </Typography>
+                 <Typography className={classes.epTitle} type="subheading">
+                   {curEpDescr}
+                 </Typography>
+               </CardContent>
+               <CardActions>
+                 {isPreview && (<IconButton
+                   className={classes.actionButton}
+                   onClick={handleBookmark}>{bookmarkIcon}</IconButton>)}
+                 {!isPreview && curIsSerie && showAllEp && (<IconButton
+                   className={classes.actionButton}
+                   onClick={handleCloseShowAllEp}><ExpandLessIcon/></IconButton>)}
+                 {!isPreview && curIsSerie && !showAllEp && (<IconButton
+                   className={classes.actionButton}
+                   onClick={handleShowList}><ExpandMoreIcon/></IconButton>)}
+                 {isPreview && (<IconButton
+                   className={classes.actionButton}
+                   onClick={handleDownload}><Download/></IconButton>)}
+                 {playStateIcon}
+               </CardActions>
+             </div>
+             {!showAllEp && (<CardMedia
+               className={classes.image}
+               image={imgSrcStr}
+               title={serie.title}
+             />)}
+             {showAllEp && (<EpList
+               serie={serie}
+               curEp={serieCurEp}
+               curPlay={curPlay}
+               usbPath={usbPath}
+               width={width}
+               useHeight={height}
+               curPos={curPos}
+               isPaused={isPaused}
+               imgSrc={serImgSrcStr}
+               onClickPlay={handleClickItemIndex}
+               onSetPaused={handleSetPaused}
+             />)}
+           </Card>
+          <Snackbar
+            open={open}
+            message={message}
+            autoHideDuration={3500}
+          />
+        </div>
+      )
+    } else {
+      return (
+        <Tappable
+          onPress={handlePressed}
+          onClick={(e) => handleClickItem(e)}
+          className="serie-div shadow"
+          style={(disabled) ? {cursor: "default"} : null}
+          data-active={isActiveSerie}
+          data-playing={isCurPlaying}
+          data-edit-mode={longPressMode}
+          data-disabled={disabled}
+        >
+          {longPressMode &&
+            (<Fab
+              size="small"
+              color="secondary"
+              className={largeScreen ? classes.deleteButtonLScreen : classes.deleteButton}
+              onClick={handleDeleteSerie}
+            >
+              <DeleteIcon />
+            </Fab>
+          )}
+          {longPressMode &&
+            (<Fab
+              size="small"
+              color="primary"
+              className={largeScreen ? classes.editButtonLScreen : classes.editButton}
+              onClick={() => onStartEdit()}
+            >
+              <CreateIcon />
+            </Fab>
+          )}
+          {longPressMode &&
+            (<Fab
+              size="small"
+              onClick={handleCloseLongPressMode}
+              className={largeScreen ? classes.closeButtonLScreen : classes.closeButton}
+            >
+              <CloseIcon />
+            </Fab>
+          )}
+          <div
+            className={unique(serie.title)+'_item item-div'}
+          >
+            <img className="image" src={imgSrcStr} alt="" />
+            <div className="Title">{serie.title}
+              {isPreview && (<div className="Description">{serie.description}</div>)}
+              <div className="EpDescription">{serSubTitle}</div>
+            </div>
+          </div>
+        </Tappable>
+    )}
+  }
+}
 
 SeriesItem.propTypes = {
   classes: PropTypes.object.isRequired,
   theme: PropTypes.object.isRequired,
-};
+}
 
-export default withStyles(styles, { withTheme: true })(SeriesItem);
+export default withStyles(styles, { withTheme: true })(SeriesItem)

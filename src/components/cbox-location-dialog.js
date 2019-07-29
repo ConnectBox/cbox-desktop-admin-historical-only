@@ -13,7 +13,7 @@ import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
-import { withNamespaces } from 'react-i18next';
+import { withTranslation } from 'react-i18next';
 import {getNormalizedPath, pathExistsAsync} from '../utils/file-functions'
 
 const styles = theme => ({
@@ -241,4 +241,4 @@ CboxLocationDialog.propTypes = {
   theme: PropTypes.object.isRequired,
 };
 
-export default withStyles(styles, { withTheme: true })(withNamespaces()(CboxLocationDialog));
+export default withStyles(styles, { withTheme: true })(withTranslation()(CboxLocationDialog));

@@ -59,11 +59,8 @@ export class CboxTextField extends React.Component {
   }
   onKeyPress = (e) => {
     if(e.key === 'Enter'){
-      const tmpObj = {
-        title: e.target.value
-      }
       if (this.props.onChannelUpdate!=null){
-        this.props.onChannelUpdate(tmpObj)
+        this.props.onChannelUpdate(e.target.value)
       }
     }
   }

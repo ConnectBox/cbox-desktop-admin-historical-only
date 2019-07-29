@@ -1,37 +1,39 @@
-import React from 'react';
-//import axios from 'axios';
-import './img-grid.css';
-import { getRelPath } from '../utils/file-functions';
+import React, { useState, useEffect, useContext } from 'react'
+import { CboxContext } from '../cbox-context'
+import axios from 'axios'
+import './img-grid.css'
+import cred from '../cred'
+import { getHostPathSep, getRelPath } from '../utils/file-functions'
 import { isPathInsideUsb, getLocalMediaFName,
-            removeOrgPathPrefix } from '../utils/obj-functions';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import Gallery from 'react-photo-gallery';
-import SearchForm from './SearchForm';
-import Button from '@material-ui/core/Button';
-import Snackbar from '@material-ui/core/Snackbar';
-import IconButton from '@material-ui/core/IconButton';
-import CloseIcon from '@material-ui/icons/Close';
-import { Upload } from 'mdi-material-ui';
-import { withNamespaces } from 'react-i18next';
+            removeOrgPathPrefix } from '../utils/obj-functions'
+import Dialog from '@material-ui/core/Dialog'
+import DialogActions from '@material-ui/core/DialogActions'
+import DialogTitle from '@material-ui/core/DialogTitle'
+import UnsplashGridList from './unsplash-gridlist'
+import SearchForm from './SearchForm'
+import Button from '@material-ui/core/Button'
+import { Upload } from 'mdi-material-ui'
+import { withTranslation } from 'react-i18next'
 
 const styles = {
   button: {
     left: '91%',
   },
   mainSearchDiv: {
-    overflow: 'hidden',
+  },
+  title: {
+    marginLeft: 15,
   },
   image: {
     margin: '18px 0 0 24px',
-    maxWidth: 180,
-    maxHeight: 180,
+    maxWidth: 100,
+    maxHeight: 100,
     width: "auto",
     height: "auto"
   },
   search: {
     top: 40,
+    paddingLeft: 20,
     margin: '0 auto',
     maxWidth: 800
   },
@@ -40,234 +42,203 @@ const styles = {
   },
 }
 
-class ImgGrid extends React.Component {
-  state = {
-    openSnackbar: false,
-    snackbarMessage: "",
-    imgs: [],
-    curQueryStr: "",
-    curPage: 1,
-    imgSrc: undefined,
-		loadingState: true,
-    hasMoreItems: true,
-  }
-
-  componentWillReceiveProps(nextProps) {
-    if (this.props.imgSrc !== nextProps.imgSrc){
-      this.setState({imgSrc: removeOrgPathPrefix(this.props.usbPath,nextProps.imgSrc)})
+const ImgGrid = (props) => {
+  const scope = useContext(CboxContext)
+  const { t, open, imgSrc, onSave, onClose } = props
+  const { usbPath, height, width } = scope
+  const [useImgSrc, setUseImgSrc] = useState(undefined)
+  const [imgs, setImgs] = useState([])
+  const [curQueryStr, setCurQueryStr] = useState("")
+  const [curPage, setCurPage] = useState(1)
+  const [curImage, setCurImage] = useState(undefined)
+  const [loadingState, setLoadingState] = useState(false)
+  const [hasMoreItems, setHasMoreItems] = useState(true)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [downloadingText, setDownloadingText] = useState("")
+  const [progressText, setProgressText] = useState("")
+  const [percentProgress, setPercentProgress] = useState(0)
+  useEffect(() => {
+    window.ipcRendererOn('image-download-progress',(event, jsonObj) => {
+      const obj = JSON.parse(jsonObj)
+      const { received, total } = obj
+      const locPercentProgress = (received * 100) / total
+      const receivedMB = (received / 1000000).toFixed(2)
+      const totalMB = (total / 1000000).toFixed(2)
+      setIsDownloading(true)
+      setDownloadingText(t("downloading"))
+      setProgressText(receivedMB + " / " + totalMB + " Mbyte")
+      setPercentProgress(locPercentProgress)
+    })
+    return () => {
+      window.ipcRendererRemoveListener('image-download-progress')
     }
-    if (this.props.usbPath !== nextProps.usbPath){
-      this.setState({imgSrc: removeOrgPathPrefix(nextProps.usbPath,this.props.imgSrc)})
-    }
-  }
+  }, [])
 
-  componentWillMount() {
-    if (this.props.imgSrc!=null){
-      this.setState({imgSrc: removeOrgPathPrefix(this.props.usbPath,this.props.imgSrc)})
+  useEffect(() => {
+    window.ipcRendererOn('download-end',(event, value) => {
+      setIsDownloading(false)
+      setDownloadingText("")
+      setProgressText("")
+      setPercentProgress(0)
+      onSave(curImage)
+    })
+    return () => {
+      window.ipcRendererRemoveListener('download-end')
     }
-  }
+  }, [curImage])
 
-  performSearch = (query,page = 1) => {
-console.log(page);
-/*
+  useEffect(() => {
+    if (usbPath && imgSrc) setUseImgSrc(removeOrgPathPrefix(usbPath,imgSrc))
+  }, [usbPath,imgSrc])
+
+  const uniqueArrayByThumb = (a,b) => a.filter(aItem => !b.some(bItem => {
+    return aItem.urls.thumb === bItem.urls.thumb
+  }))
+  const performSearch = (query,page = 1) => {
+    setLoadingState(true)
+console.log(scope.accessToken)
 		axios
-			.get(
-				`https://api.unsplash.com/search/photos/?page=`+page+`&per_page=36&query=${query}&client_id=${cred.APP_ID}`
-//				`https://api.unsplash.com/users/(username)/collections?page=1&per_page=12&client_id=${cred.APP_ID}`
-			)
+      .get(`https://qombi.com/unsplashSearch`
+            +`?query=${query}&page=${page}&id=${scope.accessToken}`)
 			.then(data => {
-        const newList = [...this.state.imgs, ...data.data.results];
-        this.setState({
-          imgs: newList,
-          curQueryStr: query,
-          curPage: page,
-          loadingState: false
-        })
+        const uniqueArr = uniqueArrayByThumb(imgs,data.data)
+        setImgs([...uniqueArr, ...data.data])
+        setCurQueryStr(query)
+        setCurPage(page)
+        setLoadingState(false)
 			})
 			.catch(err => {
-				console.log('Error happened during fetching!', err);
-			});
-*/
-	};
+				console.log('Error happened during fetching!', err)
+			})
+  }
 
-  onClickPhoto = (event,item) => {
-    if (this.props.onSave!=null){
-      const orgImg = this.state.imgs[item.index];
+  const onConnect = () => {
+console.log("connect")
+    window.ipcRendererSend('connect-proxy')
+  }
+
+  const onClickPhoto = (index) => {
+    if (onSave!=null){
+      const orgImg = imgs[index]
       const retObj = {
         origin: "Unsplash",
+        descr: orgImg.description || orgImg.alt_description,
         urls: orgImg.urls,
         links: orgImg.links,
         user: { name: orgImg.user.name, html: orgImg.user.links.html }
-      };
-      this.props.onSave(retObj)
-    }
-  }
-
-  handleSave = () => {
-    if (this.props.onSave!=null){
-      const retObj = {
-        origin: "Local",
-        filename: this.state.imgSrc,
-      };
-      this.props.onSave(retObj)
-    }
-  }
-
-  loadItems = () => {
-    this.performSearch(this.state.curQueryStr,this.state.curPage+1)
-  }
-
-  openFile = () => {
-// Possible alternative for later? Import from any local location
-//  and copy to the configure local directory
-    const {t, usbPath} = this.props;
-    const resObj = window.showOpenDialog({
-      defaultPath: usbPath,
-      filters: [{ name: 'Images', extensions: ['gif', 'jpg', 'jpeg', 'png', 'tif'] }],
-      buttonLabel: t("selectImage"),
-      properties: [
-        'openFile', (fileNames) => {
-          if(fileNames === undefined){
-              console.log("No file selected");
-              return;
-          }
-          console.log(fileNames);
-        }
-      ]
-    });
-    if (resObj!=null){
-      const checkStr = resObj[0];
-      const relCheckStr = getRelPath(this.props.usbPath,checkStr);
-      if (!isPathInsideUsb(checkStr,this.props.usbPath)) {
-        const errMsgStr = t("imgErrMsg1") + " (" + this.props.usbPath + ") " +t("imgErrMsg2");
-        this.setState({
-          snackbarMessage: errMsgStr,
-          openSnackbar: true,
-        })
-      } else {
-        this.setState({ imgSrc: relCheckStr });
       }
+      setCurImage(retObj)
+      setIsDownloading(true)
+      window.ipcRendererSend('download-image',{
+        image: retObj,
+        target: usbPath +getHostPathSep() + "x" +getHostPathSep() +"images.unsplash.com"
+      })
     }
   }
 
-  handleSnackbarClose = () => {
-    this.setState({ openSnackbar: false });
+  const loadItems = () => {
+    performSearch(curQueryStr,curPage+1)
   }
 
-// Import Icon CC Attribution http://www.happyiconstudio.com/free-mobile-icon-kit.htm
-  render() {
-    const { t } = this.props;
-    const { openSnackbar, snackbarMessage, imgSrc } = this.state;
-    let mapppedImgList = [];
-    if (this.state.imgs!=null) {
-      mapppedImgList = this.state.imgs.map((item) => {
-        return {
-          src: item.urls.thumb,
-          width: item.width,
-          height: item.height
-        }
-      });
-    }
-//    const loader = <div className="loader">Loading ...</div>;
-    const pixsActions = [
-      <Button
-        key="local-file"
-        color="primary"
-        variant="contained"
-        onClick={this.openFile}>
-         <Upload />
-      </Button>,
-      <Button
-        key="cancel"
-        color="primary"
-        variant="contained"
-        onClick={this.props.onClose}>
-        {t("cancel")}
-      </Button>,
-      <Button
-        key="ok"
-        color="primary"
-        variant="contained"
-        disabled={imgSrc==null}
-        onClick={this.handleSave}>
-        {t("ok")}
-      </Button>
-    ];
-    var items = [];
-    mapppedImgList.forEach((item, i) => {
-        items.push(
-            <div className="track" key={i}>
-                <img src={item.src} width="150" height="150" alt={i}/>
-            </div>
-        );
-    });
-    return (
-      <Dialog
-        fullScreen
-//                maxWidth="xs"
-        onClose={this.props.onClose}
-        open={this.props.open}
-      >
-        <DialogTitle id="select-picture-title">{t("selectImage")}</DialogTitle>
-        {(imgSrc!=null) && (<img style={styles.image}
-                                    src={getLocalMediaFName(this.props.usbPath,imgSrc)}
+  let mapppedImgList = []
+  if (imgs!=null) {
+    mapppedImgList = imgs.map((item) => {
+      return {
+        img: item.urls.thumb,
+        descr: item.description || item.alt_description,
+        link: item.links.html,
+        author: item.user.name,
+        userImg: item.user.profile_image.small,
+        userLink: item.user.links.html,
+      }
+    })
+  }
+//    const loader = <div className="loader">Loading ...</div>
+  let pixsActions = [
+    <Button
+      key="cancel"
+      color="primary"
+      variant="contained"
+      onClick={onClose}>
+      {t("cancel")}
+    </Button>
+  ]
+  const isConnected = scope.accessToken
+  if (!isConnected){
+    pixsActions.push(
+        (<Button
+          key="connect"
+          color="primary"
+          variant="contained"
+          onClick={onConnect}>
+          {t("connect")}
+        </Button>))
+  }
+  var items = []
+  mapppedImgList.forEach((item, i) => {
+      items.push(
+          <div className="track" key={i}>
+              <img src={item.src} width="150" height="150" alt={i}/>
+          </div>
+      )
+  })
+  const hideMoreButton = (items.length<=0) || loadingState || isDownloading
+  return (
+    <Dialog
+      fullScreen
+      onClose={onClose}
+      open={open}
+    >
+      <DialogTitle id="select-picture-title">
+        {(useImgSrc!=null) && (<img style={styles.image}
+                                    src={getLocalMediaFName(usbPath,useImgSrc)}
                                     alt="selected"/>)}
-        <div className="main-search-form" style={styles.mainSearchDiv}>
-          <div style={styles.grpDiv}>
-            <div style={styles.search}>
-              <SearchForm onSearch={this.performSearch}/>
+        <span style={styles.title}>
+          {t("selectImage")}
+        </span>
+      </DialogTitle>
+      <div className="main-search-form" style={styles.mainSearchDiv}>
+        {loadingState || isDownloading || !isConnected
+          ? null
+          : (
+            <div style={styles.grpDiv}>
+              <div style={styles.search}>
+                <SearchForm autoFocus={true} onSearch={performSearch}/>
+              </div>
             </div>
-          </div>
-          <div className="main-content">
-            {this.state.loadingState
-              ? null
-              // Later we can add lightbox handling, navigating pages,
-              // We also can add Unsplash search user/collections (inkl. navigation)
-              : (
-                <div>
-                  <Gallery photos={mapppedImgList} onClick={this.onClickPhoto}/>
-                  <Button
-                    backgroundColor={"white"}
-                    label="more"
-                    onClick={this.loadItems}
-                  />
-                </div>
-              )}
-          </div>
+        )}
+        <div className="main-content">
+          {isDownloading
+            ? null
+            // Later we can add lightbox handling, navigating pages,
+            // We also can add Unsplash search user/collections (inkl. navigation)
+            : (
+              <div>
+                <UnsplashGridList
+                  imgList={mapppedImgList}
+                  onClick={onClickPhoto}
+                  height={height}
+                  width={width}
+                />
+                {hideMoreButton
+                  ? null
+                  : (
+                    <Button
+                      key="more"
+                      color="secondary"
+                      size="small"
+                      onClick={loadItems}
+                    >
+                      {t("more")}
+                    </Button>
+                )}
+              </div>
+            )}
         </div>
-        <DialogActions>{pixsActions}</DialogActions>
-        <Snackbar
-          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-          open={openSnackbar}
-          onClose={this.handleClose}
-          autoHideDuration={6000}
-          SnackbarContentProps={{
-            'aria-describedby': 'message-id',
-          }}
-          message={<span id="message-id">{snackbarMessage}</span>}
-          action={[
-            <Button
-              key="undo"
-              color="secondary"
-              size="small"
-              onClick={this.handleSnackbarClose}
-            >
-              {t("ok")}
-            </Button>,
-            <IconButton
-              key="close"
-              aria-label="Close"
-              color="inherit"
-              style={styles.close}
-              onClick={this.handleSnackbarClose}
-            >
-              <CloseIcon />
-            </IconButton>,
-          ]}
-       />
-      </Dialog>
-    );
-  }
+      </div>
+      <DialogActions>{pixsActions}</DialogActions>
+    </Dialog>
+  )
 }
 
-export default withNamespaces()(ImgGrid);
+export default withTranslation()(ImgGrid)

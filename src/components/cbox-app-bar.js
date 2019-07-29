@@ -6,6 +6,7 @@ import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import MenuIcon from '@material-ui/icons/Menu';
+import { withTranslation } from 'react-i18next';
 
 const styles = {
   appbar: {
@@ -25,6 +26,12 @@ const styles = {
     textDecoration: 'none',
     width: '100%',
   },
+  version: {
+    fontFamily: "'Work Sans', sans-serif",
+    fontSize: 16,
+    textDecoration: 'none',
+    paddingLeft: 34,
+  },
   root: {
     width: '100%',
   },
@@ -40,7 +47,9 @@ const styles = {
 };
 
 const CBoxAppBar = (props) =>  {
-  const { classes, displayMenu } = props;
+  const { t, classes, displayMenu, versionStr } = props;
+  let useVersionStr
+  if (versionStr) useVersionStr = t("version") + " " +versionStr
   return (
   <AppBar
     className={classes.appbar}
@@ -58,11 +67,16 @@ const CBoxAppBar = (props) =>  {
         className={classes.title}
         type="title"
         color="inherit"
-  //        className={styles.flex}
       >
         <img src={process.env.PUBLIC_URL + '/icon/ConnectBox.png'} alt="" style={styles.logo} />
       </Typography>
     </Toolbar>
+    {versionStr && (<Typography
+      className={classes.version}
+      type="title"
+      color="inherit"
+    >{useVersionStr}
+    </Typography>)}
   </AppBar>
   );
 }
@@ -71,4 +85,4 @@ CBoxAppBar.propTypes = {
   classes: PropTypes.object.isRequired,
 };
 
-export default withStyles(styles)(CBoxAppBar);
+export default withStyles(styles)(withTranslation()(CBoxAppBar));

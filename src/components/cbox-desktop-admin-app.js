@@ -8,12 +8,12 @@ import FormControlLabel from '@material-ui/core/FormControlLabel';
 import FormControl from '@material-ui/core/FormControl';
 import FormLabel from '@material-ui/core/FormLabel';
 import Button from '@material-ui/core/Button';
-import { withNamespaces } from 'react-i18next';
+import { withTranslation } from 'react-i18next';
 
 const styles = theme => ({
   mainMessage: {
     marginLeft: 50,
-    paddingTop: 90,
+    paddingTop: 120,
     maxWidth: 720,
     fontFamily: "'Work Sans', sans-serif",
     fontSize: 55,
@@ -179,7 +179,7 @@ class CboxDesktopAdminApp extends React.Component {
   }
 
   render() {
-    const { t, classes, usbList } = this.props;
+    const { t, classes, usbList, versionStr } = this.props;
     const validUsbDrive = ((usbList!=null)&&(usbList.length>0));
     return (
       <div
@@ -187,6 +187,7 @@ class CboxDesktopAdminApp extends React.Component {
       >
         <CBoxAppBar
           channel={null}
+          versionStr={versionStr}
           displayMenu={false}
         />
         {this.MainInitMessage()}
@@ -207,4 +208,4 @@ CboxDesktopAdminApp.propTypes = {
   theme: PropTypes.object.isRequired,
 };
 
-export default withStyles(styles, { withTheme: true })(withNamespaces()(CboxDesktopAdminApp));
+export default withStyles(styles, { withTheme: true })(withTranslation()(CboxDesktopAdminApp));

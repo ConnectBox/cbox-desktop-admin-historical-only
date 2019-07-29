@@ -15,7 +15,7 @@ function todoApp(state = initialState, action) {
 const store = createStore(todoApp);
 */
 
-class CboxVideoPlayer extends React.Component {
+class VideoPlayer extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -59,14 +59,6 @@ class CboxVideoPlayer extends React.Component {
     }
   }
 
-/* YouTube example:
-    <ReactPlayer url='https://www.youtube.com/watch?v=ysz5S6PUM-U' playing controls />
-    https://github.com/CookPete/react-player/blob/HEAD/src/demo/App.js
-
-   ToDo: Check out possibly using other video players
-     https://github.com/video-react/video-react
-     https://github.com/videojs/video.js https://www.npmjs.com/package/video.js
-*/
   ref = player => {
     this.player = player
   }
@@ -101,4 +93,4 @@ class CboxVideoPlayer extends React.Component {
 */
 };
 
-export default CboxVideoPlayer;
+export default VideoPlayer;

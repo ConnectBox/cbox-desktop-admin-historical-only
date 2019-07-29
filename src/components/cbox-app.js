@@ -1,66 +1,45 @@
 import React from 'react'
-import PropTypes from 'prop-types';
-import { withStyles } from '@material-ui/core/styles';
+import PropTypes from 'prop-types'
+import { withStyles } from '@material-ui/core/styles'
+import Typography from '@material-ui/core/Typography'
+import * as Router from 'react-router-dom'
+import CircularProgress from '@material-ui/core/CircularProgress'
+import LinearProgress from '@material-ui/core/LinearProgress'
+import Drawer from '@material-ui/core/Drawer'
+import FormControlLabel from '@material-ui/core/FormControlLabel'
+import Switch from '@material-ui/core/Switch'
+import Fab from '@material-ui/core/Fab'
+import Button from '@material-ui/core/Button'
+import IconButton from '@material-ui/core/IconButton'
+import CloseIcon from "@material-ui/icons/Close"
+import FeaturedTitlesList from './featured-titles-list.js'
+import MediaStore from './media-store.js'
+import Divider from '@material-ui/core/Divider'
+import ChevronLeftIcon from '@material-ui/icons/ChevronLeft'
+import DownloadIcon from '@material-ui/icons/CloudDownload'
+import Snackbar from '@material-ui/core/Snackbar'
+import { BookOpen, TestTube } from 'mdi-material-ui'
+import { withTranslation } from 'react-i18next'
+import { matchPath } from 'react-router'
 import Footer from './footer'
-import CBoxAppBar from './cbox-app-bar';
-import CBoxEditChannel from './cbox-edit-channel';
-import CboxMenuList from './cbox-menu-list';
-import { isEmptyObj } from '../utils/obj-functions';
-import { NavLangSelect, LanguageSelect } from './language-select';
-import { CboxTextField } from './cbox-text-field';
-import Typography from '@material-ui/core/Typography';
-import { Switch, Route, Link } from 'react-router-dom';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import LinearProgress from '@material-ui/core/LinearProgress';
-import Drawer from '@material-ui/core/Drawer';
-import Fab from '@material-ui/core/Fab';
-import Button from '@material-ui/core/Button';
-import IconButton from '@material-ui/core/IconButton';
-import CloseIcon from '@material-ui/icons/Close';
-import FeaturedTitlesList from './featured-titles-list.js';
-import TypeLangSelect from './type-lang-select';
-import MediaStore from './media-store.js';
-import Divider from '@material-ui/core/Divider';
-import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
-import DownloadIcon from '@material-ui/icons/CloudDownload';
-import Snackbar from '@material-ui/core/Snackbar';
-import { BookOpen, TestTube } from 'mdi-material-ui';
-import verge from 'verge';
-import {iso639Langs} from '../iso639-1-full.js'
-import {loadingStateValue} from '../utils/config-data';
-import { withNamespaces } from 'react-i18next';
-import {LiveProvider,LiveEditor,LiveError,LivePreview} from 'react-live'
+import CBoxAppBar from './cbox-app-bar'
+import CboxMenuList from './cbox-menu-list'
+import CboxTPathTable from './cbox-tpath-table'
+import { isEmptyObj } from '../utils/obj-functions'
+import { NavLangSelect, LanguageSelect } from './language-select'
+import { CboxTextField } from './cbox-text-field'
+import CboxBibleNavigation from './cbox-bible-navigation'
+import TextFieldSubmit from './text-field-submit'
+import { iso639Langs } from '../iso639-1-full.js'
+import { iso639_3b2 } from '../iso639-3b2'
+import { loadingStateValue } from '../utils/config-data'
+import { getAllFiles, getRelPath } from '../utils/file-functions'
 
 const defaultBackgroundStyle = {
   height: 'auto',
   minHeight: '100%',
   background: 'black'
-};
-
-const versionStr = 'Version 2.14';
-
-const codeExample = `const Wrapper = ({ children }) => (
-  <div style={{
-    background: 'papayawhip',
-    width: '100%',
-    padding: '2rem'
-  }}>
-    {children}
-  </div>
-)
-
-const Title = () => (
-  <h3 style={{ color: 'palevioletred' }}>
-    Hello World!
-  </h3>
-)
-
-render(
-  <Wrapper>
-    <Title />
-  </Wrapper>
-)`
-
+}
 
 const styles = theme => ({
   iFrame: {
@@ -68,10 +47,10 @@ const styles = theme => ({
     width: '100%',
   },
   menuTitle: {
-    margin: '15px 0px 4px 20px',
+    margin: '10px 0px 4px 40px',
   },
   aboutTitle: {
-    margin: '15px 0px 4px 50px',
+    margin: '10px 0px 4px 50px',
   },
   aboutMainTitle: {
     paddingTop: 20,
@@ -90,28 +69,6 @@ const styles = theme => ({
     right: 'auto',
     zIndex: 100,
     position: 'fixed',
-  },
-  mainMessage: {
-    marginLeft: 50,
-    paddingTop: 90,
-    maxWidth: 720,
-    fontFamily: "'Work Sans', sans-serif",
-    fontSize: 55,
-  },
-  mainMessageWhileEditing: {
-    marginLeft: 50,
-    maxWidth: 720,
-    fontFamily: "'Work Sans', sans-serif",
-    fontSize: 55,
-  },
-  mainMessageComment: {
-    clear: "right",
-    display: "block",
-    marginLeft: 10,
-    maxWidth: 720,
-    fontFamily: "'Work Sans', sans-serif",
-    fontSize: 20,
-    fontStyle: "italic",
   },
   startNowButton: {
     marginTop: 25,
@@ -141,6 +98,9 @@ const styles = theme => ({
   },
   progress: {
     margin: '150px 0px 0 250px',
+  },
+  table: {
+    marginLeft: 40,
   },
   textField: {
     marginLeft: 40,
@@ -207,21 +167,21 @@ const styles = theme => ({
     top: 70,
     fontSize: 10,
   },
-});
+})
 
 const renderMergedProps = (component, ...rest) => {
-  const finalProps = Object.assign({}, ...rest);
+  const finalProps = Object.assign({}, ...rest)
   return (
     React.createElement(component, finalProps)
-  );
+  )
 }
 
 const PropsRoute = ({ component, ...rest }) => {
   return (
-    <Route {...rest} render={routeProps => {
-      return renderMergedProps(component, routeProps, rest);
+    <Router.Route {...rest} render={routeProps => {
+      return renderMergedProps(component, routeProps, rest)
     }}/>
-  );
+  )
 }
 
 class CboxApp extends React.Component {
@@ -234,58 +194,123 @@ class CboxApp extends React.Component {
     chEditMode: false,
     openSnackbar: false,
     snackbarMessage: "",
-    containerWidth: this.calcContainerWidth(),
+    verifiedPaths: [],
+    requiredReload: false
   }
+// translation path - for instance: "/location/data.en.properties"
 
-  calcContainerWidth() {
-    let retVal = verge.viewportW();
-    return retVal;
-  }
-
-  componentDidMount = () => {
-    window.addEventListener('resize', () => {
-      const containerWidth = this.calcContainerWidth();
-      this.setState({containerWidth});
-    }, false);
+  handleChange = name => event => {
+    this.setState({ [name]: event.target.value })
   }
 
   handleFinishedPlaying = () => {
-    this.props.onPlayNext();
+    this.props.onPlayNext()
   }
 
-  handleStopPlaying = () => {
-    this.props.onStartPlay(undefined);
-    this.setState({isPaused: false});
+  handleStopPlaying = (isCurBible) => {
+    this.props.onStartPlay(undefined,undefined,undefined,isCurBible)
+    this.setState({isPaused: false})
   }
 
   handleStartPlay = (inx,curSerie,curEp) => {
-    this.setState({isPaused: false});
-    this.props.onStartPlay(inx,curSerie,curEp);
+    this.setState({isPaused: false})
+    this.props.onStartPlay(inx,curSerie,curEp)
+  }
+
+  handleStartBiblePlay = (curSerie,bookObj,id) => {
+    const {bk} = bookObj
+    const curEp = {bibleType: true,bk,id}
+    this.setState({isPaused: false})
+    this.props.onStartPlay(id,curSerie,curEp)
   }
 
   handleSetPaused = (isPaused) => {
-    this.setState({isPaused});
+    this.setState({isPaused})
   }
 
   handleReturnToHome = () => {
-    this.props.onSelectView(undefined);
+    this.props.onSelectView(undefined)
   }
 
-  handleChannelUpdate = (obj) => {
-console.log(obj)
-    const validChDef = ((obj!=null)
-                        && (obj.title!=null)
-                        && (obj.title.length>2));
-    if (validChDef) {
-      this.setState({chEditMode:false})
+  handleExitBibleNavigation = () => {
+    this.props.onStartPlay(undefined)
+    this.props.onSelectView(undefined)
+    this.setState({isPaused: false})
+  }
+
+  handleSettingsChanged = () => {
+    if (this.state.requiredReload){
+      window.ipcRendererSend('reload')
     }
-    if (this.props.onChannelUpdate!=null){
-      this.props.onChannelUpdate(obj)
-    }
+    this.props.onSelectView(undefined)
   }
 
   handleStartClick = () => {
-    this.setState({chEditMode: true});
+    this.setState({chEditMode: true})
+  }
+
+  getAllFilesInfo = async (pathName) => {
+    const filenamesArr = pathName && await getAllFiles(pathName)
+    const fileStatArr = filenamesArr.map(file => {
+      return {
+        filePath: file.filePath ,
+        isDirectory: file.isDirectory,
+      }
+    })
+    return Promise.resolve(fileStatArr)
+  }
+
+  verifyFilelist = (matchArr,inx,orgPath,pathStr,checkFiles) => {
+    const {onAddLang,onAddLabel} = this.props
+    if (checkFiles!=null) {
+      checkFiles.map((item,i) => {
+        const filename = getRelPath(this.props.usbPath,item.filePath)
+        const match = matchPath(filename, {
+          path: pathStr,
+          exact: true,
+          strict: false
+        })
+        if ((match.params!=null)&&(match.params.lang!=null)&&(onAddLang!=null)){
+          onAddLang(match.params.lang)
+        }
+        if ((match.params!=null)&&(match.params.label!=null)&&(onAddLabel!=null)){
+          onAddLabel(match.params.label)
+        }
+        this.verifyMatchArr(matchArr,inx+1,filename + "/")
+        return filename
+      })
+    }
+  }
+
+  verifyMatchArr = (matchArr,inx,orgPath) => {
+    if (matchArr[inx]!=null){
+      const checkPathStr = orgPath + matchArr[inx][1]
+      const patternStr = orgPath +matchArr[inx][0]
+      this.getAllFilesInfo(checkPathStr).then(files => {
+        this.verifyFilelist(matchArr,inx,orgPath,patternStr,files)
+      }).catch(console.error)
+    }
+  }
+
+  verifyPath = (pathStr) => {
+    const pathPatternRegEx = /\/?(.*?):([^/]*)\//gm
+    let matchArr = []
+    let match
+    while (match = pathPatternRegEx.exec(pathStr)) {
+      matchArr.push(match)
+    }
+    let orgPath = ""
+    this.verifyMatchArr(matchArr,0,orgPath)
+  }
+
+  handlePathPattern = (pathStr) => {
+    let verifiedPaths = this.state.verifiedPaths
+    if(verifiedPaths.indexOf(pathStr) === -1) {
+      this.verifyPath(pathStr)
+      verifiedPaths.push(pathStr)
+      this.setState({verifiedPaths})
+    }
+console.log(verifiedPaths)
   }
 
   VideoPlayer = () => (
@@ -294,7 +319,7 @@ console.log(obj)
         onClick={this.handleReturnToHome}
         className={this.props.classes.floatingButton}
         color="primary"
-        component={Link}
+        component={Router.Link}
         to='/'
       >
         <ChevronLeftIcon />
@@ -307,12 +332,14 @@ console.log(obj)
         myLang={this.props.myLang}
         languages={this.props.languages}
         filter='vid'
+        height={this.props.height}
+        width={this.props.width}
         fullList
         onSelectView={this.props.onSelectView}
         onPlayNext={this.props.onPlayNext}
         onStartPlay={this.handleStartPlay}
         onSetPaused={this.handleSetPaused}
-        onFeaturedTitlesUpdate={this.props.onFeaturedTitlesUpdate}
+        onTitlesUpdate={this.props.onTitlesUpdate}
         onAddTitle={this.props.onAddTitle}
         onDeleteTitle={this.props.onDeleteTitle}
         isPaused={this.state.isPaused}
@@ -323,43 +350,29 @@ console.log(obj)
     </div>
   )
 
-  MainInitMessage = (isEditMode) => {
-    const { t, classes } = this.props;
-    return (
-      <div className={isEditMode? classes.mainMessageWhileEditing : classes.mainMessage}>
-        {t("createChannel")}
-        <span  className={classes.mainMessageComment}>
-          {t("createChannelComment")}
-        </span>
-      </div>
-    )
-  }
-
-// ToDo: -> ASAP enable write access and then change text to:
-// Share your media channel
-  Home = () => {
+  Home = (props) => {
     const { t, classes, loadingState, titles, curView,
             channel, percentList, percentDownload,
-            progressTextList, progressTextDownload } = this.props;
-    const largeScreen = (this.state.containerWidth>=768);
+            progressTextList, progressTextDownload,
+            usbPath, usbHash, featuredTitles, myLang,
+            curPlay, curPos } = this.props
+
+    const largeScreen = (this.props.width>=768)
     const chDefExists = ((channel!=null)
-                        && (channel.title!=null));
-    const validChDef = (chDefExists
-                        && (channel.title.length>2));
-    const editChDef = this.state.chEditMode || (!validChDef && chDefExists);
-//    const editChDef = false;
+                        && (channel.title!=null))
+    let isCurBible = false
+    let curBiblePlay
+    if (curPlay!=null) curBiblePlay = JSON.parse(JSON.stringify(curPlay))
+    if ((curPlay!=null)&&(curPlay.curSerie!=null)&&(curPlay.curSerie.mediaType!=null)){
+      isCurBible = (curPlay.curSerie.mediaType==="bible")
+      if (isCurBible) curBiblePlay.curEp = undefined
+    }
     return (
     <div style={(curView!=null)? defaultBackgroundStyle : null}>
       <CBoxAppBar
         displayMenu={true}
         onLeftIconButtonClick={this.handleToggle}
       />
-      {editChDef && (<CBoxEditChannel
-        channel={channel}
-        verifyLength={chDefExists}
-        onChannelUpdate={(obj) => this.handleChannelUpdate(obj)}
-        onLeftIconButtonClick={this.handleToggle}
-      />)}
       {(percentList>=0) && (<div className={classes.linearProgress}>
         {progressTextList}
           <LinearProgress
@@ -378,34 +391,27 @@ console.log(obj)
         && (<CircularProgress
           className={classes.progress}
           size={65} />)}
-      {!validChDef && this.MainInitMessage(editChDef)}
-      {!editChDef && !validChDef && (<Button
-        variant="contained"
-        className={classes.startNowButton}
-        onClick={this.handleStartClick}
-        color="primary"
-      >{t("startNow")}
-      </Button>)}
-      {(!this.props.loading) && validChDef && (<FeaturedTitlesList
-        usbPath={this.props.usbPath}
-        usbHash={this.props.usbHash}
-        featuredTitles={this.props.featuredTitles}
-        titles={titles}
-        channel={channel}
-        myLang={this.props.myLang}
-        loadingState={loadingState}
+      {isCurBible && (<CboxBibleNavigation
+        isPaused={this.state.isPaused}
+        onPlayNext={this.props.onPlayNext}
+        onStartPlay={this.handleStartBiblePlay}
+        onReset={this.props.onReset}
+        onSetPaused={this.handleSetPaused}
+        onExitNavigation={this.handleExitBibleNavigation}
+      />)}
+      {(!this.props.loading) && !isCurBible && (<FeaturedTitlesList
         filter=''
         onSelectView={this.props.onSelectView}
         onPlayNext={this.props.onPlayNext}
         onStartPlay={this.handleStartPlay}
         onReset={this.props.onReset}
         onSetPaused={this.handleSetPaused}
-        onFeaturedTitlesUpdate={this.props.onFeaturedTitlesUpdate}
-        isPaused={this.state.isPaused}
+        onAddTitle={this.props.onAddTitle}
+        onDelete={this.handleDelete}
+        onTitlesUpdate={this.props.onTitlesUpdate}
+        onAddTitle={this.props.onAddTitle}
         largeScreen={largeScreen}
-        curPlay={this.props.curPlay}
-        curPos={this.props.curPos}
-        curView={curView}
+        curPlay={isCurBible ? curBiblePlay : curPlay}
       />)}
     </div>
   )}
@@ -417,7 +423,7 @@ console.log(obj)
         onClick={this.handleReturnToHome}
         className={this.props.classes.floatingButton}
         color="primary"
-        component={Link}
+        component={Router.Link}
         to='/'
       >
         <ChevronLeftIcon />
@@ -430,12 +436,52 @@ console.log(obj)
         myLang={this.props.myLang}
         languages={this.props.languages}
         filter='aud'
+        height={this.props.height}
+        width={this.props.width}
         fullList
         onSelectView={this.props.onSelectView}
         onPlayNext={this.props.onPlayNext}
         onStartPlay={this.handleStartPlay}
         onSetPaused={this.handleSetPaused}
-        onFeaturedTitlesUpdate={this.props.onFeaturedTitlesUpdate}
+        onTitlesUpdate={this.props.onTitlesUpdate}
+        onAddTitle={this.props.onAddTitle}
+        onDeleteTitle={this.props.onDeleteTitle}
+        isPaused={this.state.isPaused}
+        curPlay={this.props.curPlay}
+        curPos={this.props.curPos}
+        curView={this.props.curView}
+      />
+    </div>
+  )}
+
+  Download = () => {
+    return (
+    <div style={defaultBackgroundStyle}>
+      <Fab
+        onClick={this.handleReturnToHome}
+        className={this.props.classes.floatingButton}
+        color="primary"
+        component={Router.Link}
+        to='/'
+      >
+        <ChevronLeftIcon />
+      </Fab>
+      <MediaStore
+        usbPath={this.props.usbPath}
+        usbHash={this.props.usbHash}
+        featuredTitles={this.props.featuredTitles}
+        titles={this.props.titles}
+        myLang={this.props.myLang}
+        languages={this.props.languages}
+        filter='dwnl'
+        height={this.props.height}
+        width={this.props.width}
+        fullList
+        onSelectView={this.props.onSelectView}
+        onPlayNext={this.props.onPlayNext}
+        onStartPlay={this.handleStartPlay}
+        onSetPaused={this.handleSetPaused}
+        onTitlesUpdate={this.props.onTitlesUpdate}
         onAddTitle={this.props.onAddTitle}
         onDeleteTitle={this.props.onDeleteTitle}
         isPaused={this.state.isPaused}
@@ -452,7 +498,7 @@ console.log(obj)
         onClick={this.handleReturnToHome}
         color="primary"
         className={this.props.classes.floatingButton}
-        component={Link}
+        component={Router.Link}
         to='/'
       >
         <ChevronLeftIcon />
@@ -460,13 +506,13 @@ console.log(obj)
     </div>
   )
 
-  Books = () => (
+  Books = (props) => (
     <div style={defaultBackgroundStyle}>
       <Fab
         onClick={this.handleReturnToHome}
         className={this.props.classes.floatingButton}
         color="primary"
-        component={Link}
+        component={Router.Link}
         to='/'
       >
         <ChevronLeftIcon />
@@ -479,12 +525,14 @@ console.log(obj)
         myLang={this.props.myLang}
         languages={this.props.languages}
         filter='epub'
+        height={this.props.height}
+        width={this.props.width}
         fullList
         onSelectView={this.props.onSelectView}
         onPlayNext={this.props.onPlayNext}
         onStartPlay={this.handleStartPlay}
         onSetPaused={this.handleSetPaused}
-        onFeaturedTitlesUpdate={this.props.onFeaturedTitlesUpdate}
+        onTitlesUpdate={this.props.onTitlesUpdate}
         onAddTitle={this.props.onAddTitle}
         onDeleteTitle={this.props.onDeleteTitle}
         isPaused={this.state.isPaused}
@@ -495,49 +543,13 @@ console.log(obj)
     </div>
   )
 
-  Pages = () => (
-    <div
-      style={{height: '100%'}}
-    >
-      <Fab
-        onClick={this.handleReturnToHome}
-        color="primary"
-        className={this.props.classes.floatingButton}
-        component={Link}
-        to='/'
-      >
-        <ChevronLeftIcon />
-      </Fab>
-      <LiveProvider
-        style={{position: 'relative', height: '100%', paddingLeft: 90}}
-        code={codeExample}
-        mountStylesheet={false}
-        noInline={true}
-      >
-        <LivePreview
-          style={{
-            padding: 20}}/>
-        <LiveEditor
-          style={{
-            color: 'darkblue',
-            backgroundColor: 'white'}}/>
-        <LiveError
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            backgroundColor: 'lightpink',
-            whiteSpace: 'pre-line'}}/>
-      </LiveProvider>
-    </div>
-  )
-
   Training = () => (
     <div style={defaultBackgroundStyle}>
       <Fab
         onClick={this.handleReturnToHome}
         className={this.props.classes.floatingButton}
         color="primary"
-        component={Link}
+        component={Router.Link}
         to='/'
       >
         <ChevronLeftIcon />
@@ -550,12 +562,14 @@ console.log(obj)
         myLang={this.props.myLang}
         languages={this.props.languages}
         filter='html'
+        height={this.props.height}
+        width={this.props.width}
         fullList
         onSelectView={this.props.onSelectView}
         onPlayNext={this.props.onPlayNext}
         onStartPlay={this.handleStartPlay}
         onSetPaused={this.handleSetPaused}
-        onFeaturedTitlesUpdate={this.props.onFeaturedTitlesUpdate}
+        onTitlesUpdate={this.props.onTitlesUpdate}
         onAddTitle={this.props.onAddTitle}
         onDeleteTitle={this.props.onDeleteTitle}
         isPaused={this.state.isPaused}
@@ -566,59 +580,82 @@ console.log(obj)
     </div>
   )
 
-  Bible = () => (<div/>)
+  Bible = () => (
+    <div style={defaultBackgroundStyle}>
+      <Fab
+        onClick={this.handleReturnToHome}
+        className={this.props.classes.floatingButton}
+        color="primary"
+        component={Router.Link}
+        to='/'
+      >
+        <ChevronLeftIcon />
+      </Fab>
+      <MediaStore
+        usbPath={this.props.usbPath}
+        usbHash={this.props.usbHash}
+        featuredTitles={this.props.featuredTitles}
+        titles={this.props.titles}
+        myLang={this.props.myLang}
+        languages={this.props.languages}
+        filter='bible'
+        height={this.props.height}
+        width={this.props.width}
+        fullList
+        onSelectView={this.props.onSelectView}
+        onPlayNext={this.props.onPlayNext}
+        onStartPlay={this.handleStartPlay}
+        onSetPaused={this.handleSetPaused}
+        onTitlesUpdate={this.props.onTitlesUpdate}
+        onAddTitle={this.props.onAddTitle}
+        onDeleteTitle={this.props.onDeleteTitle}
+        isPaused={this.state.isPaused}
+        curPlay={this.props.curPlay}
+        curPos={this.props.curPos}
+        curView={this.props.curView}
+      />
+    </div>
+  )
 
   handleEditClose = (history) => {
     history.goBack()
-  };
+  }
 
   handleCBoxDownload = () => {
-    const {usbPath} = this.props;
-    window.ipcRendererSend('download-to-usb',usbPath);
+    const {usbPath} = this.props
+    window.ipcRendererSend('download-to-usb',usbPath)
   }
 
   handleSnackbarClose = () => {
-    this.setState({ openSnackbar: false });
-  };
+    this.setState({ openSnackbar: false })
+  }
 
   handleCBoxSampleDownload = () => {
-    const {t,usbPath,titles} = this.props;
+    const {t,usbPath,titles} = this.props
     if (titles!=null){
       this.setState({
         openSnackbar: true,
         snackbarMessage: t("usbMustBeEmpty"),
       })
     } else {
-      window.ipcRendererSend('download-sample-to-usb',usbPath);
+      window.ipcRendererSend('download-sample-to-usb',usbPath)
     }
   }
 
   handleDebug = () => {
     window.ipcRendererSend('open-dev')
+//    window.ipcRendererSend('open-host-profile-page')
   }
 
-  AddSerie = (props) => (
-    <div>
-      <TypeLangSelect
-        usbPath={this.props.usbPath}
-        usbHash={this.props.usbHash}
-        defaultLang={this.props.defaultLang}
-        onClose={() => this.handleEditClose(props.history)}
-        onAddTitle={this.props.onAddTitle}
-        onDelete={this.handleDelete}
-      />
-    </div>
-  )
-
   About = () => {
-    const { t, classes } = this.props;
+    const { t, classes } = this.props
     return (
       <div>
         <Fab
           onClick={this.handleReturnToHome}
           className={classes.topButton}
           color="primary"
-          component={Link}
+          component={Router.Link}
           to='/'
         >
           <ChevronLeftIcon />
@@ -636,29 +673,54 @@ console.log(obj)
         <Typography
           type="title"
           className={classes.aboutTitle}
-        >{versionStr}</Typography>
+        >{t('version')+" "+this.props.versionStr}</Typography>
       </div>
     )
   }
 
   Settings = () => {
-    const { t, classes, channel, defaultLang } = this.props;
-    const tmpValue = !isEmptyObj(channel)? channel.title : null;
-    const textFieldUpdate = (str) => {
-      const tmpObj = {
-        title: str
+    const { t, classes, channel, defaultLang,
+            onChannelTitleUpdate, onPageLayoutUpdate,
+            onTranslationUpdate } = this.props
+    const usePageLayout = (channel && (channel.pageLayout)) || false
+    const translations = (channel && channel.tPathList) || [{}]
+    const tmpValue = !isEmptyObj(channel) && channel.title
+    const handleChannelTitleUpdate = (str) => {
+      onChannelTitleUpdate && onChannelTitleUpdate(str)
+    }
+    const handleTranslationUpdate = (rowNbr,rowData) => {
+      let tPathCopy = channel.tPathList
+      tPathCopy[rowNbr] = rowData
+      this.setState({requiredReload: true})
+      onTranslationUpdate && onTranslationUpdate(tPathCopy)
+    }
+    const handleAddTPath = (val) => {
+      let tPathCopy = channel.tPathList
+      if (tPathCopy==null){
+        tPathCopy = []
       }
-      if (this.props.onChannelUpdate!=null){
-        this.props.onChannelUpdate(tmpObj)
-      }
+      tPathCopy.push({
+        tPath: val,
+        tPLang: ""
+      })
+      this.setState({requiredReload: true})
+      onTranslationUpdate && onTranslationUpdate(tPathCopy)
+    }
+    const handleDeleteTPath = (rowNbr) => {
+      let tPathCopy = channel.tPathList.filter((row, i) => i !== rowNbr)
+      this.setState({requiredReload: true})
+      onTranslationUpdate && onTranslationUpdate(tPathCopy)
+    }
+    const handlePageLayoutUpdate = (val) => {
+      onPageLayoutUpdate && onPageLayoutUpdate(val)
     }
     return (
       <div>
         <Fab
-          onClick={this.handleReturnToHome}
+          onClick={this.handleSettingsChanged}
           className={classes.topButton}
           color="primary"
-          component={Link}
+          component={Router.Link}
           to='/'
         >
           <ChevronLeftIcon />
@@ -669,7 +731,19 @@ console.log(obj)
           label={t("channelName")}
           verifyLength={true}
           defaultValue={tmpValue}
-          onUpdate={textFieldUpdate}
+          onUpdate={(str) => handleChannelTitleUpdate(str)}
+        />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={usePageLayout}
+              disabled
+              value="pageLayout"
+              onChange={(ev,val) => handlePageLayoutUpdate(val)}
+              color="primary"
+            />
+          }
+          label="Customized Page Layout"
         />
         <Divider />
         <Typography
@@ -689,6 +763,7 @@ console.log(obj)
         >{t("mediaContentLang")}:</Typography>
         <LanguageSelect
           multi={true}
+          isSearchable={true}
           languages={Object.keys(iso639Langs)}
           selLang={this.props.languages}
           onLanguageUpdate={this.props.onLangUpdate}
@@ -704,6 +779,22 @@ console.log(obj)
           languages={this.props.languages}
           selLang={this.props.myLang}
           onLanguageUpdate={this.props.onMyLangUpdate}
+        />
+        <Divider />
+        <div className={classes.table}>
+          <CboxTPathTable
+            data={translations}
+            onDeleteRow={(row) => handleDeleteTPath(row)}
+            onUpdateCell={(rowNbr,rowData) => handleTranslationUpdate(rowNbr,rowData)}
+          />
+        </div>
+        <TextFieldSubmit
+          onSubmit={(val) => handleAddTPath(val)}
+          InputLabelProps={{
+            shrink: true,
+          }}
+          label="Translation path"
+          className={classes.textField}
         />
         <Divider />
         <Typography
@@ -749,18 +840,18 @@ console.log(obj)
     )
   }
 
-  handleToggle = () => this.setState({open: !this.state.open});
-  handleClose = () => this.setState({open: false});
-  handleMenuSelect = () => this.setState({langOpen: true});
-  handleLangClose = () => this.setState({langOpen: false});
+  handleToggle = () => this.setState({open: !this.state.open})
+  handleClose = () => this.setState({open: false})
+  handleMenuSelect = () => this.setState({langOpen: true})
+  handleLangClose = () => this.setState({langOpen: false})
   handleEditMode = () => {
     this.setState({
       langOpen: false,
       editMode: true,
-    });
+    })
   }
   handleMenuClick = (item) => {
-    this.setState({open: false});
+    this.setState({open: false})
   }
 
   handleNavLang = (valArr) => {
@@ -768,9 +859,9 @@ console.log(valArr)
   }
 
   render() {
-    const { t, channel, classes } = this.props;
-    const { openSnackbar, snackbarMessage } = this.state;
-    const isCurPlaying = (this.props.curPlay!=null);
+    const { t, channel, classes } = this.props
+    const { openSnackbar, snackbarMessage } = this.state
+    const isCurPlaying = (this.props.curPlay!=null)
     return (
       <div
         id="page_container"
@@ -817,60 +908,32 @@ console.log(valArr)
           ]}
 
         />
-        <Switch>
-          <Route exact path='/' component={this.Home}/>
+        <Router.Switch>
+          <Router.Route exact path='/' component={this.Home}/>
           <PropsRoute path='/audio' component={this.Audio} test="test"/>
-          <Route path='/music' component={this.Music}/>
-          <Route path='/books' component={this.Books}/>
-          <Route path='/training' component={this.Training}/>
-          <Route path='/test' component={this.Test}/>
-          <Route path='/bible' component={this.Bible}/>
-          <Route path='/pages' component={this.Pages}/>
-          <Route path='/video' component={this.VideoPlayer}/>
-          <Route path='/setting' component={this.Settings}/>
-          <Route path='/about' component={this.About}/>
-          <Route path='/add' component={this.AddSerie}/>
-        </Switch>
+          <Router.Route path='/music' component={this.Music}/>
+          <Router.Route path='/books' component={this.Books}/>
+          <Router.Route path='/training' component={this.Training}/>
+          <Router.Route path='/test' component={this.Test}/>
+          <Router.Route path='/bible' component={this.Bible}/>
+          <Router.Route path='/download' component={this.Download}/>
+          <Router.Route path='/video' component={this.VideoPlayer}/>
+          <Router.Route path='/setting' component={this.Settings}/>
+          <Router.Route path='/about' component={this.About}/>
+        </Router.Switch>
         <Footer
-          usbPath={this.props.usbPath}
-          usbHash={this.props.usbHash}
-          isPaused={this.state.isPaused}
           onSetPaused={this.handleSetPaused}
-          curPlay={this.props.curPlay}
-          curPos={this.props.curPos}
           onPlaying={this.props.onPlaying}
           onFinishedPlaying={this.handleFinishedPlaying}
-          onStopCallback={this.handleStopPlaying}/>
+          onStopPlaying={this.handleStopPlaying}/>
       </div>
-    );
+    )
   }
 }
-
-/*
-<div>
-  <TextField
-    id="mapGUID"
-    label="MAP key"
-    onChange={this.handleChangeGUID}
-    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (GUID)"
-    helperText="Please request your key from mapglobalmedia@twr.org"
-    className={classes.textField}
-    value={this.state.keyGUID}
-  />
-  <Button
-    variant="contained"
-    size="small"
-    disabled={!this.state.changedGUID}
-    onClick={this.handleSaveGUID}
-    className={classes.updateButton}
-  >Update</Button>
-</div>
-<Divider />
-*/
 
 CboxApp.propTypes = {
   classes: PropTypes.object.isRequired,
   theme: PropTypes.object.isRequired,
-};
+}
 
-export default withStyles(styles, { withTheme: true })(withNamespaces()(CboxApp));
+export default withStyles(styles, { withTheme: true })(withTranslation()(CboxApp))

@@ -11,22 +11,24 @@ export const getIdFromItem = (curSerie) => {
 }
 
 export const getIdStr = (curObj,field) => {
-  let retStr = "";
+  let retStr = ""
   if ((curObj!=null) && (curObj.curSerie!=null)){
-    const titleIdStr = unique(curObj.curSerie.title);
-    retStr = curObj.curSerie.language + "_" + titleIdStr;
+    const titleIdStr = unique(curObj.curSerie.title)
+    retStr = curObj.curSerie.language + "_" + titleIdStr
     if (curObj.curEp!=null){
-      retStr = retStr + "_" + curObj.curEp.id;
+      if (curObj.curEp.bibleType){
+        retStr += "_" + curObj.curEp.id
+      } else retStr += "_" + curObj.curEp.bk + "_" + curObj.curEp.id
     }
-    retStr = retStr + "_" + field;
+    retStr += "_" + field
   }
-  return retStr;
+  return retStr
 }
 
-export const apiSetStorage = (usbHash,key,value) => localforage.setItem(key,value)
+export const apiSetStorage = (usbHash,key,value) => localforage.setItem(unique(usbHash)+"_"+key,value)
 
 export const apiGetStorage = async (usbHash,key) => {
-  return localforage.getItem(key).then(async function(value) {
+  return localforage.getItem(unique(usbHash)+"_"+key).then(async function(value) {
     return Promise.resolve(value);
   }).catch(function(err) {
     console.log(err);

@@ -75,6 +75,11 @@ typings/
 /build
 /release-builds
 
+# public
+/public/epub
+/public/bookIcons
+/public/navIcons
+
 # misc
 .DS_Store
 .env.local

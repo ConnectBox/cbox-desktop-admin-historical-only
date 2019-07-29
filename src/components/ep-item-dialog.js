@@ -1,22 +1,29 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { withStyles } from '@material-ui/core/styles';
-import { getImgOfObj, isEmpty, jsonEqual, nullToEmptyStr } from '../utils/obj-functions';
-import CardActions from '@material-ui/core/CardActions';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import FormGroup from '@material-ui/core/FormGroup';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Switch from '@material-ui/core/Switch';
-import ImageCollections from '@material-ui/icons/Collections';
-import TextField from '@material-ui/core/TextField';
-import TranslateIcon from '@material-ui/icons/Translate';
-import ImgGrid from './img-grid';
-import Typography from '@material-ui/core/Typography';
+import React from 'react'
+import PropTypes from 'prop-types'
+import { withStyles } from '@material-ui/core/styles'
+import { getImgOfObj, isEmpty, jsonEqual, nullToEmptyStr } from '../utils/obj-functions'
+import CardActions from '@material-ui/core/CardActions'
+import Button from '@material-ui/core/Button'
+import Dialog from '@material-ui/core/Dialog'
+import DialogActions from '@material-ui/core/DialogActions'
+import DialogContent from '@material-ui/core/DialogContent'
+import FormGroup from '@material-ui/core/FormGroup'
+import FormControlLabel from '@material-ui/core/FormControlLabel'
+import Switch from '@material-ui/core/Switch'
+import ImageCollections from '@material-ui/icons/Collections'
+import TextField from '@material-ui/core/TextField'
+import TranslateIcon from '@material-ui/icons/Translate'
+import IconButton from '@material-ui/core/IconButton'
+import CloseIcon from '@material-ui/icons/Close'
+import ImgGrid from './img-grid'
+import PictureMenu from './picture-menu'
+import Typography from '@material-ui/core/Typography'
 import {iso639Langs} from '../iso639-1-full.js'
-import { withNamespaces } from 'react-i18next';
+import { withTranslation } from 'react-i18next'
+import path from 'path'
+import { isPathInsideUsb } from '../utils/obj-functions'
+import { getRelPath } from '../utils/file-functions'
+import Snackbar from '@material-ui/core/Snackbar'
 
 const styles = {
   card: {
@@ -40,6 +47,7 @@ const styles = {
   },
   image: {
     margin: '18px 0 0 24px',
+    cursor: 'pointer',
     maxWidth: 180,
     maxHeight: 180,
     width: "auto",
@@ -78,6 +86,13 @@ const styles = {
     whiteSpace: "nowrap",
     color: "rgba(0, 0, 0, 0.770588)",
   },
+  floatingButtonEdit: {
+    left: 165,
+    top: 150,
+    width: 65,
+    zIndex: 100,
+    position: 'relative',
+  },
   textFieldNumber: {
     paddingLeft: 20,
   },
@@ -101,10 +116,10 @@ const styles = {
     top: 7,
     right: 15,
     position: 'relative',
-    heigth: 25,
+    height: 25,
     width: 25,
   }
-};
+}
 
 class EpItemDialog extends React.Component {
   state = {
@@ -115,40 +130,43 @@ class EpItemDialog extends React.Component {
   }
 
   getEp = (serObj) => {
-    let retObj = undefined;
-    const { epInx } = this.props;
+    let retObj = undefined
+    const { epInx } = this.props
     if ((serObj!=null)&&(serObj.fileList!=null)&&(serObj.fileList.length>epInx)) {
-      retObj = serObj.fileList[epInx];
+      retObj = serObj.fileList[epInx]
     }
     return retObj
   }
 
   verifyData = (dataObj,checkField) => {
-    let copyItem = {};
+    let copyItem = {}
     if (dataObj!=null){
-      copyItem = JSON.parse(JSON.stringify(dataObj));
+      copyItem = JSON.parse(JSON.stringify(dataObj))
     }
     const checkEp = this.getEp(copyItem)
     const tmpDataOk = ( (checkEp!=null)
                       && (checkEp.image!=null)
                       && (checkEp.mediaType!=null)
                       && (checkEp.title!=null)
-                      && (checkEp.language!=null) );
+                      && (checkEp.language!=null) )
     const tmpAllEmpty =  (checkEp==null)
                       || ( isEmpty(checkEp.image)
                         && isEmpty(checkEp.mediaType)
                         && isEmpty(checkEp.title)
                         && isEmpty(checkEp.description)
-                        && isEmpty(checkEp.language) );
+                        && isEmpty(checkEp.language) )
     const tmpChangedField = ( checkField
                                 && !isEmpty(this.getEp(this.props.item))
-                                && !jsonEqual(checkEp,this.getEp(this.props.item)) );
+                                && !jsonEqual(checkEp,this.getEp(this.props.item)) )
     this.setState({
       eItem: copyItem,
       dataOk: tmpDataOk,
       allEmpty: tmpAllEmpty,
+      anchorEl: null,
       changedField: tmpChangedField,
-    });
+      openSnackbar: false,
+      snackbarMessage: "",
+    })
 /*
     if (this.props.onEditModeChange!=null){
       this.props.onEditModeChange(eMode)
@@ -158,69 +176,119 @@ class EpItemDialog extends React.Component {
 
   componentWillReceiveProps(nextProps) {
     if (this.props.item !== nextProps.item){
-      this.verifyData(nextProps.item);
+      this.verifyData(nextProps.item)
     }
   }
 
   componentWillMount() {
-    this.verifyData(this.props.item);
+    this.verifyData(this.props.item)
+  }
+
+  openFile = () => {
+    const {t,usbPath} = this.props
+// Possible alternative for later? Import from any local location
+//  and copy to the configure local directory
+    const resObj = window.showOpenDialog({
+      defaultPath: usbPath,
+      filters: [{ name: 'Images', extensions: ['gif', 'jpg', 'jpeg', 'png', 'tif'] }],
+      buttonLabel: t("selectImage"),
+      properties: [
+        'openFile', (fileNames) => {
+          if(fileNames === undefined){
+              console.log("No file selected")
+              return
+          }
+          console.log(fileNames)
+        }
+      ]
+    })
+    if (resObj!=null){
+      const checkStr = resObj[0]
+      const relCheckStr = getRelPath(usbPath,checkStr)
+      if (!isPathInsideUsb(checkStr,usbPath)) {
+        const errMsgStr = t("imgErrMsg1") + " (" + usbPath + ") " +t("imgErrMsg2")
+        this.setState({
+          snackbarMessage: errMsgStr,
+          openSnackbar: true
+        })
+      } else {
+        const retObj = {
+          origin: "Local",
+          filename: relCheckStr,
+        }
+        let tmpSer = this.state.eItem
+        let tmpObj = this.getEp(tmpSer)
+    		tmpObj.image = retObj
+        this.verifyData(tmpSer,true)
+      }
+    }
   }
 
 	handleSelectImage = (x) => {
-    let tmpSer = this.state.eItem;
-    let tmpObj = this.getEp(tmpSer);
-		tmpObj.image = x;
-    this.verifyData(tmpSer,true);
-    this.setState({openPixDialog: false});
+    let tmpSer = this.state.eItem
+    let tmpObj = this.getEp(tmpSer)
+		tmpObj.image = x
+    this.verifyData(tmpSer,true)
+    this.setState({openPixDialog: false})
 	}
-
-  handleOpenPixDialog = () => {
-		this.setState({openPixDialog: true});
-  }
 
 	handleImport = () => {
   }
 
 	handleClose = (ev) => {
-    ev.stopPropagation();
-    this.verifyData(this.props.item);
+    ev.stopPropagation()
+    this.verifyData(this.props.item)
     this.props.onClose()
   }
 
 	handleClosePixDialog = () => {
-		this.setState({openPixDialog: false});
+		this.setState({openPixDialog: false})
 	}
 
-  handleSave = () => {
-    const {lang,filter,isSelectedSerie} = this.props;
-    const {eItem} = this.state;
+  handlePixChoice = (ev) => {
+    this.setState({anchorEl: ev.currentTarget})
+  }
+  handleSelectImageFileClick = (ev) => {
+    this.openFile()
+    this.setState({anchorEl: undefined})
+  }
+  handleUnsplashClick = (ev) => {
+    this.setState({
+      openPixDialog: true,
+      anchorEl: undefined
+    })
+  }
 
-    const copy = Object.assign({}, eItem);
+  handleSave = () => {
+    const {lang,filter,isSelectedSerie} = this.props
+    const {eItem} = this.state
+
+    const copy = Object.assign({}, eItem)
     if (this.props.onAddTitle!=null){
-      copy.language = lang;
-      copy.mediaType=filter;
+      copy.language = lang
+      copy.mediaType=filter
 console.log(eItem)
 console.log(this.props)
-      this.props.onAddTitle(copy,isSelectedSerie);
+      this.props.onAddTitle(copy,isSelectedSerie)
     }
     this.props.onClose()
 	}
 
   onFieldChange(event,inputName) {
-    let tmpSer = this.state.eItem;
-    let tmpObj = this.getEp(tmpSer);
+    let tmpSer = this.state.eItem
+    let tmpObj = this.getEp(tmpSer)
     if (tmpObj!=null){
-      tmpObj[inputName] = event.target.value;
-      this.verifyData(tmpSer,true);
+      tmpObj[inputName] = event.target.value
+      this.verifyData(tmpSer,true)
     }
   }
 
   onCheck(event,isChecked,inputName) {
-    let tmpObj = this.state.eItem;
-    tmpObj[inputName] = isChecked;
+    let tmpObj = this.state.eItem
+    tmpObj[inputName] = isChecked
     this.setState({
       eItem: tmpObj
-    });
+    })
   }
 
   renderCheckBox = (textStr,field) => {
@@ -241,8 +309,8 @@ console.log(this.props)
   }
 
   renderTextField = (label,hint,field,errorText) => {
-    const checkEp = this.getEp(this.state.eItem);
-    let valStr = "";
+    const checkEp = this.getEp(this.state.eItem)
+    let valStr = ""
     if (checkEp!=null) {
       valStr = checkEp[field]
     }
@@ -256,24 +324,24 @@ console.log(this.props)
         label={label}
       />
     )
-  };
+  }
 
   render() {
-    const { t, backgroundColor, usbPath, lang } = this.props;
-    const { eItem, changedField } = this.state;
-    const checkEp = this.getEp(eItem);
+    const { t, backgroundColor, usbPath, lang } = this.props
+    const { eItem, changedField } = this.state
+    const checkEp = this.getEp(eItem)
 
-    let imgSrc = "";
+    let imgSrc = ""
     if ((checkEp!=null)&&(checkEp.image!=null)){
-      imgSrc = getImgOfObj(usbPath,checkEp);
+      imgSrc = getImgOfObj(usbPath,checkEp)
     } else if (eItem!=null){
-      imgSrc = getImgOfObj(usbPath,eItem);
+      imgSrc = getImgOfObj(usbPath,eItem)
     }
-    let langStr = "undefined";
+    let langStr = "undefined"
     if (lang!=null){
-      langStr = iso639Langs[lang].name;
+      langStr = iso639Langs[lang].name
     }
-    const hasTranslations = false;
+    const hasTranslations = false
     return (
       <Dialog
         open={this.props.open}
@@ -282,7 +350,22 @@ console.log(this.props)
         aria-labelledby="form-dialog-title"
         style={{backgroundColor}}
       >
-        {(checkEp!=null) && (<img src={imgSrc} alt={checkEp.title} style={styles.image}/>)}
+        {(checkEp!=null) && (
+          <Button
+            style={styles.floatingButtonEdit}
+            color="primary"
+            variant="contained"
+            onClick={this.handlePixChoice}>
+            <ImageCollections />
+          </Button>
+        )}
+        {(checkEp!=null) && (
+          <img
+            src={imgSrc}
+            alt={checkEp.title}
+            onClick={this.handlePixChoice}
+            style={styles.image}/>
+        )}
         <DialogContent>
           <Typography
             type="title"
@@ -298,11 +381,6 @@ console.log(this.props)
                 <TranslateIcon />
               </Button>
             )}
-            <Button
-              color="primary"
-              onClick={this.handleOpenPixDialog}>
-              <ImageCollections />
-            </Button>
           </CardActions>
 					{this.state.openPixDialog
             && (<ImgGrid
@@ -313,6 +391,13 @@ console.log(this.props)
               onClose={this.handleClosePixDialog}
               onSave={this.handleSelectImage}
             />)}
+          <PictureMenu
+            anchorEl={this.state.anchorEl}
+            open={Boolean(this.state.anchorEl)}
+            onClose={this.handleClose}
+            onSelectImageFileClick={(event) => this.handleSelectImageFileClick(event)}
+            onUnsplashClick={(event) => this.handleUnsplashClick(event)}
+          />
         </DialogContent>
         <DialogActions>
           <Button
@@ -331,14 +416,43 @@ console.log(this.props)
             </Button>
           )}
         </DialogActions>
+        <Snackbar
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          open={this.state.openSnackbar}
+          onClose={this.handleSnackbarClose}
+          autoHideDuration={6000}
+          SnackbarContentProps={{
+            'aria-describedby': 'message-id',
+          }}
+          message={<span id="message-id">{this.state.snackbarMessage}</span>}
+          action={[
+            <Button
+              key="undo"
+              color="secondary"
+              size="small"
+              onClick={this.handleSnackbarClose}
+            >
+              {t("ok")}
+            </Button>,
+            <IconButton
+              key="close"
+              aria-label="Close"
+              color="inherit"
+              style={styles.close}
+              onClick={this.handleSnackbarClose}
+            >
+              <CloseIcon />
+            </IconButton>,
+          ]}
+        />
       </Dialog>
-    );
+    )
   }
 }
 
 EpItemDialog.propTypes = {
   classes: PropTypes.object.isRequired,
   theme: PropTypes.object.isRequired,
-};
+}
 
-export default withStyles(styles, { withTheme: true })(withNamespaces()(EpItemDialog));
+export default withStyles(styles, { withTheme: true })(withTranslation()(EpItemDialog))
